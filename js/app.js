@@ -8,7 +8,7 @@
 // i upp till 10 minuter efter en deploy, oavsett hur många gånger appen
 // stängs/öppnas. Bumpa den här strängen vid varje deploy så registreringen
 // alltid hämtar sw.js färskt (query-strängen kringgår CDN-cachen helt).
-const SW_REG_VERSION = 'v11';
+const SW_REG_VERSION = 'v12';
 
 const RECIPE_FILES = [
   'basic-pizzadeg.md',
@@ -233,7 +233,15 @@ async function startCast(id) {
       showToast('Castar laga-läget…');
       return;
     } catch (err) {
+      // Cast-SDK:n finns och laddades, men just det här anslutningsförsöket
+      // misslyckades (t.ex. tillfälligt strul med enheten). Visa det riktiga
+      // felet och låt användaren trycka på castknappen igen — att istället
+      // hoppa till "casta manuellt"-guiden här är förvirrande och gömmer
+      // vad som faktiskt gick fel.
       if (err === 'cancel') return;
+      console.error('Cast requestSession misslyckades:', err);
+      showToast(`Kunde inte ansluta till Nest Hub Max (${err}). Testa castknappen igen.`, 5000);
+      return;
     }
   }
 
