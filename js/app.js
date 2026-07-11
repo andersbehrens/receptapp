@@ -8,7 +8,7 @@
 // i upp till 10 minuter efter en deploy, oavsett hur många gånger appen
 // stängs/öppnas. Bumpa den här strängen vid varje deploy så registreringen
 // alltid hämtar sw.js färskt (query-strängen kringgår CDN-cachen helt).
-const SW_REG_VERSION = 'v10';
+const SW_REG_VERSION = 'v11';
 
 const RECIPE_FILES = [
   'basic-pizzadeg.md',
@@ -106,6 +106,13 @@ function ensureCastAckListener(session) {
   });
 }
 
+// Riktig Cast-hårdvara kan ta betydligt mer än ett par sekunder att starta
+// mottagarappen (kallstart av receiver.html på själva Nest Hub Max-enheten),
+// så vi håller ut i nästan en minut innan vi ger upp — att skicka om samma
+// meddelande är ofarligt (idempotent) så det kostar inget att vara tålmodig.
+const CAST_RETRY_INTERVAL_MS = 1200;
+const CAST_RETRY_MAX_ATTEMPTS = 40; // ~48s
+
 function sendCastMessage(hash, attempt) {
   if (!castContext) return false;
   const session = castContext.getCurrentSession();
@@ -115,10 +122,10 @@ function sendCastMessage(hash, attempt) {
   session.sendMessage(CAST_NAMESPACE, { hash }).catch(() => {});
   clearTimeout(castRetryTimer);
   const nextAttempt = (attempt || 0) + 1;
-  if (nextAttempt < 8) {
+  if (nextAttempt < CAST_RETRY_MAX_ATTEMPTS) {
     castRetryTimer = setTimeout(() => {
       if (castPendingHash === hash) sendCastMessage(hash, nextAttempt);
-    }, 600);
+    }, CAST_RETRY_INTERVAL_MS);
   }
   return true;
 }
