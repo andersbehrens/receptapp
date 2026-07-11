@@ -1,0 +1,517 @@
+/* ==========================================================
+   Recept — app.js
+   Router + markdown-parser + vyer + inköpslista + laga-läge
+   ========================================================== */
+
+const RECIPE_FILES = [
+  'basic-pizzadeg.md',
+  'belugalasagne.md',
+  'kottfarspaj-picknick.md',
+  'snabbaste-biffen.md',
+  'salsicciafars-spaghetti.md',
+  'goda-soppan-elsass.md',
+  'banankaka.md',
+  'glasstarta.md',
+  'potatis-purjoloekssoppa.md',
+];
+
+const CATEGORY_ORDER = ['Middag', 'Soppa', 'Bakverk', 'Bröd & deg'];
+const CATEGORY_ICONS = { 'Middag': '🍽️', 'Soppa': '🍲', 'Bakverk': '🍰', 'Bröd & deg': '🍞' };
+const RECIPE_ICONS = {
+  'kottfarspaj-picknick': '🥧',
+  'belugalasagne': '🥬',
+  'basic-pizzadeg': '🍕',
+  'snabbaste-biffen': '🥩',
+  'salsicciafars-spaghetti': '🌭',
+  'goda-soppan-elsass': '🍲',
+  'potatis-purjoloekssoppa': '🥔',
+  'banankaka': '🍌',
+  'glasstarta': '🍨',
+};
+
+const SHOPLIST_KEY = 'recept_shoppinglist_v1';
+
+let RECIPES = [];
+const state = { query: '', category: 'Alla' };
+
+const root = document.getElementById('app-root');
+const cookRoot = document.getElementById('cook-root');
+
+/* ---------- Helpers ---------- */
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+function normalize(text) {
+  return String(text).trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+let toastTimer;
+function showToast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.className = 'toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  requestAnimationFrame(() => el.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ---------- Markdown → recept-parser ---------- */
+
+function parseFrontmatter(raw) {
+  const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (!m) return { meta: {}, body: raw };
+  const meta = {};
+  m[1].split('\n').forEach((line) => {
+    if (!line.trim()) return;
+    const idx = line.indexOf(':');
+    if (idx === -1) return;
+    const key = line.slice(0, idx).trim();
+    let val = line.slice(idx + 1).trim();
+    if (val.startsWith('[') && val.endsWith(']')) {
+      meta[key] = val.slice(1, -1).split(',').map((s) => s.trim().replace(/^"|"$/g, '')).filter(Boolean);
+    } else {
+      meta[key] = val.replace(/^"|"$/g, '').replace(/"$/, '');
+    }
+  });
+  return { meta, body: m[2] };
+}
+
+function parseRecipeBody(body) {
+  const tokens = marked.lexer(body);
+  const result = { intro: '', ingredientGroups: [], steps: [], note: '' };
+  let section = null;
+  let currentGroup = null;
+  const introParts = [];
+
+  tokens.forEach((tok) => {
+    if (tok.type === 'heading' && tok.depth === 2) {
+      const t = tok.text.toLowerCase();
+      if (t.indexOf('ingrediens') !== -1) { section = 'ingredienser'; currentGroup = null; }
+      else if (t.indexOf('gör så här') !== -1) { section = 'steg'; }
+      else if (t.indexOf('om receptet') !== -1) { section = 'om'; }
+      else { section = null; }
+      return;
+    }
+    if (tok.type === 'heading' && tok.depth === 3 && section === 'ingredienser') {
+      currentGroup = { name: tok.text, items: [] };
+      result.ingredientGroups.push(currentGroup);
+      return;
+    }
+    if (tok.type === 'list') {
+      if (section === 'ingredienser') {
+        if (!currentGroup) { currentGroup = { name: null, items: [] }; result.ingredientGroups.push(currentGroup); }
+        tok.items.forEach((li) => currentGroup.items.push(li.text));
+      } else if (section === 'steg') {
+        tok.items.forEach((li) => result.steps.push(li.text));
+      }
+      return;
+    }
+    if (tok.type === 'paragraph' && section === 'om') {
+      introParts.push(tok.text);
+      return;
+    }
+    if (tok.type === 'blockquote') {
+      let text = tok.text;
+      if (!text && tok.tokens) text = tok.tokens.map((t2) => t2.text || '').join(' ');
+      result.note = text;
+      return;
+    }
+  });
+
+  result.intro = introParts.join('\n\n');
+  return result;
+}
+
+function buildRecipe(id, raw) {
+  const { meta, body } = parseFrontmatter(raw);
+  const parsed = parseRecipeBody(body);
+  const taggar = Array.isArray(meta.taggar) ? meta.taggar : [];
+  const category = meta.category || 'Övrigt';
+  const allIngredientText = parsed.ingredientGroups.flatMap((g) => g.items).join(' ');
+  return {
+    id,
+    title: meta.title || id,
+    category,
+    portioner: meta.portioner || '',
+    tid: meta.tid || '',
+    taggar,
+    source: meta['källa'] || '',
+    intro: parsed.intro,
+    note: parsed.note,
+    ingredientGroups: parsed.ingredientGroups,
+    steps: parsed.steps,
+    icon: RECIPE_ICONS[id] || CATEGORY_ICONS[category] || '🍴',
+    _searchBlob: [meta.title, category, taggar.join(' '), allIngredientText]
+      .join(' ').toLowerCase(),
+  };
+}
+
+async function loadAllRecipes() {
+  const list = await Promise.all(RECIPE_FILES.map(async (fname) => {
+    const res = await fetch(`recept/${fname}`);
+    const raw = await res.text();
+    return buildRecipe(fname.replace(/\.md$/, ''), raw);
+  }));
+  list.sort((a, b) => a.title.localeCompare(b.title, 'sv'));
+  return list;
+}
+
+/* ---------- Inköpslista (localStorage) ---------- */
+
+function getList() {
+  try { return JSON.parse(localStorage.getItem(SHOPLIST_KEY)) || []; }
+  catch (e) { return []; }
+}
+
+function saveList(list) {
+  localStorage.setItem(SHOPLIST_KEY, JSON.stringify(list));
+  updateCartBadge();
+}
+
+function updateCartBadge() {
+  const remaining = getList().filter((x) => !x.checked).length;
+  const badge = document.getElementById('cart-badge');
+  if (!badge) return;
+  if (remaining > 0) { badge.textContent = String(remaining); badge.hidden = false; }
+  else { badge.hidden = true; }
+}
+
+function addRecipeToShoppingList(recipe) {
+  const list = getList();
+  let added = 0;
+  recipe.ingredientGroups.forEach((g) => g.items.forEach((raw) => {
+    const key = normalize(raw);
+    const existing = list.find((x) => x.id === key);
+    if (existing) {
+      if (!existing.sources.includes(recipe.title)) existing.sources.push(recipe.title);
+    } else {
+      list.push({ id: key, text: raw, sources: [recipe.title], checked: false });
+      added += 1;
+    }
+  }));
+  saveList(list);
+  showToast(added > 0 ? `${added} ingredienser tillagda i inköpslistan` : 'Ingredienserna fanns redan i listan');
+}
+
+function toggleItem(id) {
+  const list = getList();
+  const item = list.find((x) => x.id === id);
+  if (!item) return;
+  item.checked = !item.checked;
+  saveList(list);
+  if (currentRoute() === 'inkopslista') renderShoppingList();
+}
+
+function removeItem(id) {
+  saveList(getList().filter((x) => x.id !== id));
+  if (currentRoute() === 'inkopslista') renderShoppingList();
+}
+
+function clearChecked() {
+  saveList(getList().filter((x) => !x.checked));
+  if (currentRoute() === 'inkopslista') renderShoppingList();
+}
+
+function clearAll() {
+  if (!getList().length) return;
+  if (!confirm('Rensa hela inköpslistan?')) return;
+  saveList([]);
+  if (currentRoute() === 'inkopslista') renderShoppingList();
+}
+
+function addCustomItem(text) {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  const list = getList();
+  const key = normalize(trimmed);
+  if (list.find((x) => x.id === key)) { showToast('Finns redan i listan'); return; }
+  list.push({ id: key, text: trimmed, sources: ['Eget tillägg'], checked: false });
+  saveList(list);
+  if (currentRoute() === 'inkopslista') renderShoppingList();
+}
+
+/* ---------- Router ---------- */
+
+function currentRoute() {
+  return location.hash.replace(/^#/, '');
+}
+
+function router() {
+  const hash = currentRoute();
+  if (hash.startsWith('laga/')) {
+    renderCook(decodeURIComponent(hash.slice(5)));
+    return;
+  }
+  cookRoot.innerHTML = '';
+  if (hash.startsWith('recept/')) renderRecipeDetail(decodeURIComponent(hash.slice(7)));
+  else if (hash === 'inkopslista') renderShoppingList();
+  else renderHome();
+  window.scrollTo(0, 0);
+}
+
+/* ---------- Vy: Startsida / bläddra & sök ---------- */
+
+function renderHome() {
+  const presentCats = [...new Set(RECIPES.map((r) => r.category))];
+  const ordered = CATEGORY_ORDER.filter((c) => presentCats.includes(c));
+  const rest = presentCats.filter((c) => !CATEGORY_ORDER.includes(c)).sort((a, b) => a.localeCompare(b, 'sv'));
+  const cats = ['Alla', ...ordered, ...rest];
+
+  root.innerHTML = `
+    <div class="chips" id="chips">
+      ${cats.map((c) => `<button class="chip${c === state.category ? ' active' : ''}" data-cat="${escapeHtml(c)}">${c === 'Alla' ? 'Alla' : `${CATEGORY_ICONS[c] || ''} ${escapeHtml(c)}`}</button>`).join('')}
+    </div>
+    <div class="section-title" id="grid-title"></div>
+    <div class="recipe-grid" id="grid"></div>
+  `;
+  updateGrid();
+  document.querySelectorAll('#chips .chip').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      state.category = btn.dataset.cat;
+      document.querySelectorAll('#chips .chip').forEach((b) => b.classList.toggle('active', b === btn));
+      updateGrid();
+    });
+  });
+}
+
+function updateGrid() {
+  const q = state.query.trim().toLowerCase();
+  const list = RECIPES.filter((r) => (state.category === 'Alla' || r.category === state.category)
+    && (!q || r._searchBlob.includes(q)));
+  const gridTitle = document.getElementById('grid-title');
+  const grid = document.getElementById('grid');
+  if (!gridTitle || !grid) return;
+  if (!list.length) {
+    gridTitle.textContent = '';
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="big">🔍</div>Inga recept hittades.</div>`;
+    return;
+  }
+  gridTitle.textContent = `${list.length} recept`;
+  grid.innerHTML = list.map((r) => `
+    <a class="recipe-card" href="#recept/${encodeURIComponent(r.id)}">
+      <div class="recipe-card-icon">${r.icon}</div>
+      <div class="recipe-card-title">${escapeHtml(r.title)}</div>
+      <div class="recipe-card-meta">${[r.tid, r.portioner].filter(Boolean).map(escapeHtml).join(' · ')}</div>
+      ${r.taggar.length ? `<div class="recipe-card-tags">${r.taggar.slice(0, 3).map((t) => `<span class="recipe-tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+    </a>
+  `).join('');
+}
+
+/* ---------- Vy: Receptdetalj ---------- */
+
+function renderRecipeDetail(id) {
+  const r = RECIPES.find((x) => x.id === id);
+  if (!r) {
+    root.innerHTML = `<div class="empty-state"><div class="big">🍅</div>Receptet hittades inte.<br><br><a class="btn btn-primary" href="#">Till startsidan</a></div>`;
+    return;
+  }
+  const groupsHtml = r.ingredientGroups.map((g) => `
+    ${g.name ? `<h3>${escapeHtml(g.name)}</h3>` : ''}
+    <ul class="ingr-list">${g.items.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ul>
+  `).join('');
+  const stepsHtml = `<ol class="steps-list">${r.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ol>`;
+
+  root.innerHTML = `
+    <a class="back-link" href="#">← Alla recept</a>
+    <div class="recipe-header">
+      <h1>${escapeHtml(r.title)}</h1>
+      <div class="recipe-meta-row">
+        <span>${r.icon}</span>
+        ${[r.tid, r.portioner].filter(Boolean).map(escapeHtml).join(' <span class="dot">·</span> ')}
+      </div>
+      ${r.taggar.length ? `<div class="recipe-card-tags" style="margin-bottom:14px">${r.taggar.map((t) => `<span class="recipe-tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+    </div>
+    ${r.intro ? `<div class="recipe-intro">${escapeHtml(r.intro).replace(/\n\n/g, '<br><br>')}</div>` : ''}
+    <div class="action-row">
+      <button class="btn btn-primary" data-action="add-to-list" data-id="${escapeHtml(r.id)}">🛒 Lägg till i inköpslistan</button>
+      <a class="btn btn-gold" href="#laga/${encodeURIComponent(r.id)}">📺 Öppna laga-läge</a>
+    </div>
+    <div class="recipe-block">
+      <h2>Ingredienser</h2>
+      ${groupsHtml}
+    </div>
+    <div class="recipe-block">
+      <h2>Gör så här</h2>
+      ${stepsHtml}
+      ${r.note ? `<div class="recipe-note">💡 ${escapeHtml(r.note)}</div>` : ''}
+    </div>
+    ${r.source ? `<div class="recipe-source">Källa: ${escapeHtml(r.source)}</div>` : ''}
+  `;
+}
+
+/* ---------- Vy: Inköpslista ---------- */
+
+function shopItemHtml(item) {
+  return `
+    <div class="shop-item ${item.checked ? 'checked' : ''}">
+      <button class="shop-check" data-action="toggle-item" data-id="${escapeHtml(item.id)}">✓</button>
+      <div class="shop-text">
+        <div class="shop-item-name">${escapeHtml(item.text)}</div>
+        ${item.sources && item.sources.length ? `<div class="shop-item-source">Från: ${escapeHtml(item.sources.join(', '))}</div>` : ''}
+      </div>
+      <button class="shop-remove" data-action="remove-item" data-id="${escapeHtml(item.id)}" aria-label="Ta bort">✕</button>
+    </div>
+  `;
+}
+
+function renderShoppingList() {
+  const list = getList();
+  const sorted = [...list].sort((a, b) => (a.checked === b.checked
+    ? a.text.localeCompare(b.text, 'sv')
+    : (a.checked ? 1 : -1)));
+
+  root.innerHTML = `
+    <h1 style="font-size:1.4rem;margin-bottom:16px">🛒 Inköpslista</h1>
+    ${list.length ? `
+      <div class="shop-bar">
+        <button class="btn btn-outline" data-action="clear-checked">Rensa avbockade</button>
+        <button class="btn btn-outline" data-action="clear-all">Rensa allt</button>
+      </div>
+      <div class="shop-list">${sorted.map(shopItemHtml).join('')}</div>
+    ` : `
+      <div class="empty-state"><div class="big">🛒</div>Din inköpslista är tom.<br>Öppna ett recept och tryck på "Lägg till i inköpslistan".</div>
+    `}
+    <div class="shop-add-row">
+      <input id="shop-add-input" type="text" placeholder="Lägg till egen vara…">
+      <button class="btn btn-primary" data-action="add-custom-item">Lägg till</button>
+    </div>
+  `;
+  const input = document.getElementById('shop-add-input');
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { addCustomItem(input.value); input.value = ''; }
+  });
+}
+
+/* ---------- Vy: Laga-läge (cast-optimerad) ---------- */
+
+function cookViewHtml(r) {
+  const groupsHtml = r.ingredientGroups.map((g) => `
+    ${g.name ? `<div class="cook-ingr-group-name">${escapeHtml(g.name)}</div>` : ''}
+    <ul class="cook-ingr-list">${g.items.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ul>
+  `).join('');
+  const stepsHtml = `<ol class="cook-steps-list">${r.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ol>`;
+
+  return `
+    <div class="cook-view">
+      <button class="cook-close" data-action="close-cook" data-id="${escapeHtml(r.id)}" aria-label="Stäng laga-läge">✕</button>
+      <div class="cook-scale">
+        <div class="cook-label">📺 Laga-läge</div>
+        <div class="cook-title">${escapeHtml(r.title)}</div>
+        ${(r.portioner || r.tid) ? `<div class="cook-portions">${[r.portioner, r.tid].filter(Boolean).map(escapeHtml).join(' · ')}</div>` : ''}
+        <div class="cook-cols">
+          <div class="cook-ingr">
+            <div class="cook-h">Ingredienser</div>
+            ${groupsHtml}
+          </div>
+          <div class="cook-steps">
+            <div class="cook-h">Gör så här</div>
+            ${stepsHtml}
+          </div>
+        </div>
+        ${r.note ? `<div class="cook-note">💡 ${escapeHtml(r.note)}</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function fitCookView() {
+  const view = cookRoot.querySelector('.cook-view');
+  const scaleEl = cookRoot.querySelector('.cook-scale');
+  if (!view || !scaleEl) return;
+  const isNarrow = window.matchMedia('(max-width: 700px), (orientation: portrait)').matches;
+  if (isNarrow) { scaleEl.style.fontSize = ''; return; }
+
+  let fontSize = Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.05);
+  fontSize = Math.max(18, Math.min(fontSize, 42));
+  scaleEl.style.fontSize = `${fontSize}px`;
+  let guard = 0;
+  while (view.scrollHeight > view.clientHeight + 2 && fontSize > 11 && guard < 60) {
+    fontSize -= 1;
+    scaleEl.style.fontSize = `${fontSize}px`;
+    guard += 1;
+  }
+}
+
+function renderCook(id) {
+  const r = RECIPES.find((x) => x.id === id);
+  if (!r) { cookRoot.innerHTML = ''; location.hash = ''; return; }
+  cookRoot.innerHTML = cookViewHtml(r);
+  requestAnimationFrame(() => requestAnimationFrame(fitCookView));
+}
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (currentRoute().startsWith('laga/')) fitCookView();
+  }, 150);
+});
+
+/* ---------- Delegerad klick-hantering ---------- */
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  if (action === 'add-to-list') {
+    const recipe = RECIPES.find((r) => r.id === btn.dataset.id);
+    if (recipe) addRecipeToShoppingList(recipe);
+  } else if (action === 'toggle-item') {
+    toggleItem(btn.dataset.id);
+  } else if (action === 'remove-item') {
+    removeItem(btn.dataset.id);
+  } else if (action === 'clear-checked') {
+    clearChecked();
+  } else if (action === 'clear-all') {
+    clearAll();
+  } else if (action === 'add-custom-item') {
+    const input = document.getElementById('shop-add-input');
+    addCustomItem(input.value);
+    input.value = '';
+    input.focus();
+  } else if (action === 'close-cook') {
+    location.hash = `#recept/${encodeURIComponent(btn.dataset.id)}`;
+  }
+});
+
+/* ---------- Init ---------- */
+
+document.getElementById('search-input').addEventListener('input', (e) => {
+  state.query = e.target.value;
+  if (currentRoute() !== '' && currentRoute() !== '#') {
+    location.hash = '';
+  } else {
+    updateGrid();
+  }
+});
+
+window.addEventListener('hashchange', router);
+
+async function init() {
+  root.innerHTML = `<div class="empty-state"><div class="big">🍅</div>Laddar recept…</div>`;
+  try {
+    RECIPES = await loadAllRecipes();
+  } catch (err) {
+    root.innerHTML = `<div class="empty-state"><div class="big">⚠️</div>Kunde inte ladda recepten.</div>`;
+    return;
+  }
+  updateCartBadge();
+  router();
+}
+
+init();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}

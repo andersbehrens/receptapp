@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Receptappen – Designförslag</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+    background: #F5F5F2;
+    color: #1a1a1a;
+    padding: 40px 24px 80px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #333;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 0.95rem;
+    color: #888;
+    letter-spacing: 0.04em;
+    margin-bottom: 16px;
+  }
+  .instructions {
+    max-width: 720px;
+    margin: 0 auto 56px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #777;
+    line-height: 1.6;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 40px;
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+  .card {
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.10);
+  }
+  .card-label {
+    padding: 20px 24px 16px;
+    background: white;
+    border-top: 1px solid #eee;
+  }
+  .card-label h2 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 4px;
+  }
+  .card-label p {
+    font-size: 0.88rem;
+    color: #555;
+    line-height: 1.5;
+  }
+  .card-label .swatches {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.08);
+    flex-shrink: 0;
+  }
+
+  /* ============================
+     MOCK: BLÄDDRA / SÖK
+     ============================ */
+  .mock {
+    height: 270px;
+    display: flex;
+    flex-direction: column;
+    font-size: 13px;
+    overflow: hidden;
+    position: relative;
+  }
+  .mock-header {
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    height: 52px;
+    flex-shrink: 0;
+    gap: 12px;
+  }
+  .mock-logo {
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: -0.5px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .mock-search {
+    flex: 1;
+    height: 30px;
+    border-radius: 6px;
+    border: none;
+    padding: 0 10px;
+    font-size: 12px;
+    outline: none;
+  }
+  .mock-body {
+    flex: 1;
+    padding: 14px 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .mock-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .mock-chip {
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .mock-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 4px;
+    opacity: 0.55;
+  }
+  .mock-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .mock-card {
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .mock-card-icon { font-size: 1.1rem; }
+  .mock-card-title { font-size: 11px; font-weight: 600; line-height: 1.3; }
+  .mock-card-sub { font-size: 9.5px; opacity: 0.6; }
+  .mock-list-btn {
+    margin-top: auto;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ============================
+     MOCK: INKÖPSLISTA
+     ============================ */
+  .mock-shopping {
+    height: 150px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .mock-shopping-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
+  .mock-shop-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    padding: 4px 0;
+  }
+  .mock-checkbox {
+    width: 17px;
+    height: 17px;
+    border-radius: 5px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .mock-shop-item.checked { opacity: 0.45; text-decoration: line-through; }
+
+  /* ============================
+     MOCK: LAGA-LÄGE / CAST
+     ============================ */
+  .mock-cast {
+    height: 230px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .mock-cast-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+  .mock-cast-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+  .mock-cast-cols {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 18px;
+    flex: 1;
+    overflow: hidden;
+  }
+  .mock-cast-h {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    margin-bottom: 6px;
+  }
+  .mock-cast-ingr div:not(.mock-cast-h), .mock-cast-steps div:not(.mock-cast-h) {
+    font-size: 13px;
+    line-height: 1.55;
+    font-weight: 600;
+  }
+
+  /* ==============================
+     TEMA 1: SKAFFERI
+     Varm terrakotta + krämvit + senapsguld
+     ============================== */
+  .skafferi .mock { background: #FBF3E9; color: #3A2416; }
+  .skafferi .mock-header { background: #6B3A2C; color: #fff; }
+  .skafferi .mock-logo span { color: #E8A33D; }
+  .skafferi .mock-search { background: rgba(255,255,255,0.16); color: #fff; }
+  .skafferi .mock-search::placeholder { color: rgba(255,255,255,0.5); }
+  .skafferi .mock-chip { background: #F3E4D0; color: #6B3A2C; }
+  .skafferi .mock-card { background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,0.07); }
+  .skafferi .mock-card-title { color: #3A2416; }
+  .skafferi .mock-list-btn { background: #E8A33D; color: #3A2416; }
+  .skafferi .mock-shopping { background: #FBF3E9; color: #3A2416; }
+  .skafferi .mock-checkbox { background: #fff; border: 1.5px solid #D8BFA0; color: #6B3A2C; }
+  .skafferi .mock-shop-item.checked .mock-checkbox { background: #E8A33D; border-color: #E8A33D; color: #fff; }
+  .skafferi .mock-cast { background: #2B1810; color: #F5E6D3; }
+  .skafferi .mock-cast-title { color: #E8A33D; }
+
+  /* ==============================
+     TEMA 2: ÖRTAGÅRD
+     Salviagrönt + krämig off-white + oliv-guld
+     ============================== */
+  .ortagard .mock { background: #F4F7F0; color: #22301D; }
+  .ortagard .mock-header { background: #3F5D3A; color: #fff; }
+  .ortagard .mock-logo span { color: #D9C36A; }
+  .ortagard .mock-search { background: rgba(255,255,255,0.16); color: #fff; }
+  .ortagard .mock-search::placeholder { color: rgba(255,255,255,0.5); }
+  .ortagard .mock-chip { background: #E6EEDD; color: #3F5D3A; }
+  .ortagard .mock-card { background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,0.07); }
+  .ortagard .mock-card-title { color: #22301D; }
+  .ortagard .mock-list-btn { background: #3F5D3A; color: #fff; }
+  .ortagard .mock-shopping { background: #F4F7F0; color: #22301D; }
+  .ortagard .mock-checkbox { background: #fff; border: 1.5px solid #C4D4B8; color: #3F5D3A; }
+  .ortagard .mock-shop-item.checked .mock-checkbox { background: #D9C36A; border-color: #D9C36A; color: #3A2E0A; }
+  .ortagard .mock-cast { background: #1E2E1B; color: #E8F0DE; }
+  .ortagard .mock-cast-title { color: #D9C36A; }
+
+  /* ==============================
+     TEMA 3: TOMAT
+     Tomatröd + varm vit + basilikagrön
+     ============================== */
+  .tomat .mock { background: #FFF9F5; color: #3A1210; }
+  .tomat .mock-header { background: #A8322D; color: #fff; }
+  .tomat .mock-logo span { color: #F5D488; }
+  .tomat .mock-search { background: rgba(255,255,255,0.18); color: #fff; }
+  .tomat .mock-search::placeholder { color: rgba(255,255,255,0.55); }
+  .tomat .mock-chip { background: #FBEAE6; color: #A8322D; }
+  .tomat .mock-card { background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,0.07); }
+  .tomat .mock-card-title { color: #3A1210; }
+  .tomat .mock-list-btn { background: #A8322D; color: #fff; }
+  .tomat .mock-shopping { background: #FFF9F5; color: #3A1210; }
+  .tomat .mock-checkbox { background: #fff; border: 1.5px solid #EBC7BE; color: #A8322D; }
+  .tomat .mock-shop-item.checked .mock-checkbox { background: #6E8A4E; border-color: #6E8A4E; color: #fff; }
+  .tomat .mock-cast { background: #3D1210; color: #FFEFE8; }
+  .tomat .mock-cast-title { color: #F2A65A; }
+
+  /* ==============================
+     TEMA 4: MARMOR
+     Kolsvart + marmorvit + guld
+     ============================== */
+  .marmor .mock { background: #F7F6F3; color: #1C1C1C; }
+  .marmor .mock-header { background: #161616; color: #fff; }
+  .marmor .mock-logo { font-weight: 300; letter-spacing: 0.04em; }
+  .marmor .mock-logo span { color: #C9A227; font-weight: 700; }
+  .marmor .mock-search { background: rgba(255,255,255,0.10); color: #fff; }
+  .marmor .mock-search::placeholder { color: rgba(255,255,255,0.4); }
+  .marmor .mock-chip { background: #EFECE3; color: #161616; }
+  .marmor .mock-card { background: #fff; border: 1px solid #E5E2DA; }
+  .marmor .mock-card-title { color: #1C1C1C; }
+  .marmor .mock-list-btn { background: #161616; color: #C9A227; }
+  .marmor .mock-shopping { background: #F7F6F3; color: #1C1C1C; }
+  .marmor .mock-checkbox { background: #fff; border: 1.5px solid #D8D3C4; color: #161616; }
+  .marmor .mock-shop-item.checked .mock-checkbox { background: #C9A227; border-color: #C9A227; color: #161616; }
+  .marmor .mock-cast { background: #0D0D0D; color: #F5F0E6; }
+  .marmor .mock-cast-title { color: #C9A227; }
+
+  /* ==============================
+     TEMA 5: NORDISK KÖK
+     Skiffergrå + isvitt + korall
+     ============================== */
+  .nordisk .mock { background: #F3F6F7; color: #17262E; }
+  .nordisk .mock-header { background: #2E4756; color: #fff; }
+  .nordisk .mock-logo span { color: #E8896B; }
+  .nordisk .mock-search { background: rgba(255,255,255,0.14); color: #fff; }
+  .nordisk .mock-search::placeholder { color: rgba(255,255,255,0.45); }
+  .nordisk .mock-chip { background: #E4EEF1; color: #2E4756; }
+  .nordisk .mock-card { background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+  .nordisk .mock-card-title { color: #17262E; }
+  .nordisk .mock-list-btn { background: #E8896B; color: #2A160E; }
+  .nordisk .mock-shopping { background: #F3F6F7; color: #17262E; }
+  .nordisk .mock-checkbox { background: #fff; border: 1.5px solid #C7DAE0; color: #2E4756; }
+  .nordisk .mock-shop-item.checked .mock-checkbox { background: #E8896B; border-color: #E8896B; color: #fff; }
+  .nordisk .mock-cast { background: #16242C; color: #E8F0F3; }
+  .nordisk .mock-cast-title { color: #E8896B; }
+
+  /* ==============================
+     TEMA 6: MORMORS KÖK
+     Vintage kräm + tegel + handskriven känsla
+     ============================== */
+  .mormor .mock { background: #FDF9F0; color: #4A342A; }
+  .mormor .mock-header { background: #FBF6EC; color: #4A342A; border-bottom: 1px solid #E8D9BE; }
+  .mormor .mock-logo { font-family: 'Bradley Hand', 'Segoe Print', 'Noteworthy', cursive; font-size: 1.3rem; font-weight: 700; }
+  .mormor .mock-logo span { color: #B5482A; }
+  .mormor .mock-search { background: #F5EAD2; color: #4A342A; }
+  .mormor .mock-search::placeholder { color: #A88B67; }
+  .mormor .mock-chip { background: #F5EAD2; color: #6B4A2E; }
+  .mormor .mock-card { background: #FFFDF7; border: 1px solid #EFE2C8; }
+  .mormor .mock-card-title { color: #4A342A; font-family: 'Bradley Hand', 'Segoe Print', 'Noteworthy', cursive; font-size: 13px; }
+  .mormor .mock-list-btn { background: #B5482A; color: #FBF6EC; }
+  .mormor .mock-shopping { background: #FDF9F0; color: #4A342A; }
+  .mormor .mock-checkbox { background: #fff; border: 1.5px solid #E0CBA0; color: #B5482A; }
+  .mormor .mock-shop-item.checked .mock-checkbox { background: #D98A3D; border-color: #D98A3D; color: #fff; }
+  .mormor .mock-cast { background: #3A2A1E; color: #F7ECD8; }
+  .mormor .mock-cast-title { color: #D98A3D; font-family: 'Bradley Hand', 'Segoe Print', 'Noteworthy', cursive; }
+
+</style>
+</head>
+<body>
+
+<h1>Receptappen</h1>
+<p class="subtitle">Designförslag — välj en stil innan appen byggs</p>
+<p class="instructions">Varje kort visar tre vyer i appen: bläddra/sök, inköpslistan (bocka av det du redan har hemma) och laga-läget som castas till Nest Hub — stor text i två spalter så du ser hela receptet utan att scrolla med kladdiga fingrar.</p>
+
+<div class="grid">
+
+  <!-- ===== SKAFFERI ===== -->
+  <div class="card skafferi">
+    <div class="mock">
+      <div class="mock-header">
+        <div class="mock-logo">Vårt<span>Skafferi</span></div>
+        <input class="mock-search" type="text" placeholder="Sök recept…" readonly>
+      </div>
+      <div class="mock-body">
+        <div class="mock-chips">
+          <div class="mock-chip">🍽️ Middag</div>
+          <div class="mock-chip">🍰 Bakverk</div>
+          <div class="mock-chip">🍲 Soppa</div>
+        </div>
+        <div class="mock-section-title">Senaste recept</div>
+        <div class="mock-cards">
+          <div class="mock-card">
+            <div class="mock-card-icon">🥧</div>
+            <div class="mock-card-title">Köttfärspaj till picknicken</div>
+            <div class="mock-card-sub">45 min · 4 port</div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-icon">🍝</div>
+            <div class="mock-card-title">Salsicciafärs & spaghetti</div>
+            <div class="mock-card-sub">30 min · 4 port</div>
+          </div>
+        </div>
+        <button class="mock-list-btn">🛒 Gör inköpslista</button>
+      </div>
+    </div>
+    <div class="mock-shopping">
+      <div class="mock-shopping-title">🛒 Inköpslista</div>
+      <div class="mock-shop-item checked"><span class="mock-checkbox">✓</span> Vetemjöl</div>
+      <div class="mock-shop-item checked"><span class="mock-checkbox">✓</span> Smör</div>
+      <div class="mock-shop-item"><span class="mock-checkbox"></span> Blandfärs 500 g</div>
+      <div class="mock-shop-item"><span class="mock-checkbox"></span> Ägg</div>
+    </div>
+    <div class="mock-cast">
+      <div class="mock-cast-label">📺 Laga-läge · castat till Nest Hub</div>
+      <div class="mock-cast-title">Köttfärspaj</div>
+      <div class="mock-cast-cols">
+        <div class="mock-cast-ingr">
+          <div class="mock-cast-h">Ingredienser</div>
+          <div>3 dl vetemjöl</div>
+          <div>100 g smör</div>
+          <div>500 g blandfärs</div>
+        </div>
+        <div class="mock-cast-steps">
+          <div class="mock-cast-h">Gör så här</div>
+          <div>1. Sätt ugnen på 200°.</div>
+          <div>2. Blanda degen, tryck ut i form.</div>
+          <div>3. Bryn färs, kål och lök.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-label">
+      <h2>Skafferi</h2>
+      <p>Varm terrakotta möter krämig off-white och senapsguld. Hemtrevligt och aptitligt — som ett väldoftande kök en söndag.</p>
+      <div class="swatches">
+        <div class="swatch" style="background:#6B3A2C" title="Terrakotta"></div>
+        <div class="swatch" style="background:#E8A33D" title="Senapsguld"></div>
+        <div class="swatch" style="background:#FBF3E9" title="Kräm"></div>
+        <div class="swatch" style="background:#2B1810" title="Mörk kaffe"></div>
+        <div class="swatch" style="background:#ffffff" title="Vit"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ÖRTAGÅRD ===== -->
+  <div class="card ortagard">
+    <div class="mock">
+      <div class="mock-header">
+        <div class="mock-logo">Ört<span>Gården</span></div>
+        <input class="mock-search" type="text" placeholder="Sök recept…" readonly>
+      </div>
+      <div class="mock-body">
+        <div class="mock-chips">
+          <div class="mock-chip">🍽️ Middag</div>
+          <div class="mock-chip">🍰 Bakverk</div>
+          <div class="mock-chip">🍲 Soppa</div>
+        </div>
+        <div class="mock-section-title">Senaste recept</div>
+        <div class="mock-cards">
+          <div class="mock-card">
+            <div class="mock-card-icon">🥬</div>
+            <div class="mock-card-title">Belugalasagne</div>
+            <div class="mock-card-sub">60 min · 8 port</div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-icon">🍲</div>
+            <div class="mock-card-title">Vichyssoise</div>
+            <div class="mock-card-sub">45 min · 4 port</div>
+          </div>
+        </div>
+        <button class="mock-list-btn">🛒 Gör inköpslista</button>
+      </div>
+    </div>
+    <div class="mock-shopping">
+      <div class="mock-shopping-title">🛒 Inköpslista</div>
+      <div class="mock-shop-item checked"><span class="mock-checkbox">✓</span> Belugalinser</div>
+      <div class="mock-shop-item"><span class="mock-checkbox"></span> Palsternacka</div>
+      <div class="mock-shop-item"><span class="mock-checkbox"></span> Krossade tomater</div>
+      <div class="mock-shop-item checked"><span class="mock-checkbox">✓</span> Vitlök</div>
+    </div>
+    <div class="mock-cast">
+      <div class="mock-cast-label">📺 Laga-läge · castat till Nest Hub</div>
+      <div class="mock-cast-title">Belugalasagne</div>
+      <div class="mock-cast-cols">
+        <div class="mock-cast-ingr">
+          <div class="mock-cast-h">Ingredienser</div>
+          <div>3 dl belugalinser</div>
+          <div>2 palsternackor</div>
+          <div>2 morötter</div>
+        </div>
+        <div class="mock-cast-steps">
+          <div class="mock-cast-h">Gör så här</div>
+          <div>1. Fräs lök i paprikapulver.</div>
+          <div>2. Tillsätt linser, tomat, vatten.</div>
+          <div>3. Koka 20 min under lock.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-label">
+      <h2>Örtagård</h2>
+      <p>Salviagrönt mot krämig ljus botten med oliv-guld accent. Botaniskt och fräscht — som en köksträdgård i juli.</p>
+      <div class="swatches">
+        <div class="swatch" style="background:#3F5D3A" title="Salvia"></div>
+        <div class="swatch" style="background:#D9C36A" title="Oliv-guld"></div>
+        <div class="swatch" style="background:#F4F7F0" title="Lingrön"></div>
+        <div class="swatch" style="background:#1E2E1B" title="Djup skog"></div>
+        <div class="swatch" style="background:#ffffff" title="Vit"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOMAT ===== -->
+  <div class="card tomat">
+    <div class="mock">
+      <div class="mock-header">
+        <div class="mock-logo">Recept<span>Rosso</span></div>
+        <input class="mock-search" type="text" placeholder="Sök recept…" readonly>
+      </div>
+      <div class="mock-body">
+        <div class="mock-chips">
+          <div class="mock-chip">🍽️ Middag</div>
+          <div class="mock-chip">🍰 Bakverk</div>
+          <div class="mock-chip">🍞 Bröd</div>
+        </div>
+        <div class="mock-section-title">Senaste recept</div>
+        <div class="mock-cards">
+          <div class="mock-card">
+            <div class="mock-card-icon">🍕</div>
+            <div class="mock-card-title">Basic pizzadeg</div>
+            <div class="mock-card-sub">60 min · 4 pizzor</div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-icon">🌭</div>
+            <div class="mock-card-title">Salsicciafärs & spaghetti</div>
+            <div class="mock-card-sub">30 min · 4 port</div>
+          </div>
+        </div>
+        <button class="mock-list-btn">🛒 Gör inköpslista</button>
+      </div>
+    </div>
+    <div class="mock-shopping">
+      <div class="mock-shopping-title">🛒 Inköpslista</div>
+      <div class="mock-shop-item checked"><span class="mock-checkbox">✓</span> Färsk jäst</div>
+      <div class="mock-shop-item"><span class="mock-checkbox"></span> Durumvete</div>
+      <div class="mock-shop-item"><span class="mock-checkbox"></span> Salsiccia</div>
+      <div class="mock-shop-item checked"><span class="mock-checkbox">✓</span> Körsbärstomater</div>
+    </div>
+    <div class="mock-cast">
+      <div class="mock-cast-label">📺 Laga-läge · castat till Nest Hub</div>
+      <div class="mock-cast-title">Basic pizzadeg</div>
+      <div class="mock-cast-cols">
+        <div class="mock-cast-ingr">
+          <div class="mock-cast-h">Ingredienser</div>
+          <div>15 g färsk jäst</div>
+          <div>3 dl ljummet vatten</div>
+          <div>1 dl durumvete</div>
+        </div>
+        <div class="mock-cast-steps">
+          <div class="mock-cast-h">Gör så här</div>
+          <div>1. Lös jästen i vattnet.</div>
+          <div>2. Knåda degen i 10 min.</div>
+          <div>3. Jäs till dubbel storlek.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-label">
+      <h2>Tomat</h2>
+      <p>Tomatröd mot varm vit med basilikagrönt i detaljerna. Aptitretande och glatt — som en italiensk trattoria.</p>
+      <div class="swatches">
+        <div class="swatch" style="background:#A8322D" title="Tomatröd"></div>
+        <div class="swatch" style="background:#6E8A4E" title="Basilika"></div>
+        <div class="swatch" style="background:#FFF9F5" title="Varm vit"></div>
+        <div class="swatch" style="background:#3D1210" title="Mörk maroon"></div>
+        <div class="swatch" style="background:#F5D488" title="Parmesan"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MARMOR ===== -->
+  <div class="card marmor">
+    <div class="mock">
+      <div class="mock-header">
+        <div class="mock-logo">recept<span>MARMOR</span></div>
+        <input class="mock-search" type="text" placeholder="Sök recept…" readonly>
+      </div>
+      <div class="mock-body">
+        <div class="mock-chips">
+          <div class="mock-chip">🍽️ Middag</div>
+          <div class="mock-chip">🍰 Bakverk</div>
+          <div class="mock-chip">🍲 Soppa</div>
+        </div>
+        <div class="mock-section-title">Senaste recept</div>
+        <div class="mock-cards">
+          <div class="mock-card">
+            <div class="mock-card-icon">🍨</div>
+            <div class="mock-card-title">Glasstårta</div>
+            <div class="mock-card-sub">20 min + frys</div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-icon">🥩</div>
+            <div class="mock-card-title">Snabbaste biffen</div>
+            <div class="mock-card-sub">30 min · 4 port</div>
+          </div>
+        </div>
+        <button class="mock-list-btn">🛒 Gör inköpslista</button>
+      </div>
+    </div>
+    <div class="mock-shopping">
+      <div class="mock-shopping-title">🛒 Inköpslista</div>
+      <div class="mock-shop-item checked"><span class="mock-checkbox">✓</span> Äggulor</div>
+      <div class="mock-shop-item"><span class="mock-checkbox"></span> Vispgrädde</div>
+      <div class="mock-shop-item"><span class="mock-checkbox"></span> Digestivekex</div>
+      <div class="mock-shop-item checked"><span class="mock-checkbox">✓</span> Philadelphiaost</div>
+    </div>
+    <div class="mock-cast">
+      <div class="mock-cast-label">📺 Laga-läge · castat till Nest Hub</div>
+      <div class="mock-cast-title">Glasstårta</div>
+      <div class="mock-cast-cols">
+        <div class="mock-cast-ingr">
+          <div class="mock-cast-h">Ingredienser</div>
+          <div>3 äggulor + 2 dl socker</div>
+          <div>3 dl vispgrädde</div>
+          <div>6 digestivekex</div>
+        </div>
+        <div class="mock-cast-steps">
+          <div class="mock-cast-h">Gör så här</div>
+          <div>1. Vispa äggulor & socker poröst.</div>
+          <div>2. Vänd i grädde och äggvitor.</div>
+          <div>3. Frys minst 6 timmar.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-label">
+      <h2>Marmor</h2>
+      <p>Kolsvart header mot marmorvitt med guldaccent. Elegant och tidlöst — som ett välfotograferat matlagningsmagasin.</p>
+      <div class="swatches">
+        <div class="swatch" style="background:#161616" title="Kol"></div>
+        <div class="swatch" style="background:#C9A227" title="Guld"></div>
+        <div class="swatch" style="background:#F7F6F3" title="Marmor"></div>
+        <div class="swatch" style="background:#0D0D0D" title="Svart"></div>
+        <div class="swatch" style="background:#ffffff" title="Vit"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== NORDISK KÖK ===== -->
+  <div class="card nordisk">
+    <div class="mock">
+      <div class="mock-header">
+        <div class="mock-logo">Nordisk<span>Kök</span></div>
+        <input class="mock-search" type="text" placeholder="Sök recept…" readonly>
+      </div>
+      <div class="mock-body">
+        <div class="mock-chips">
+          <div class="mock-chip">🍽️ Middag</div>
+          <div class="mock-chip">🍰 Bakverk</div>
+          <div class="mock-chip">🍲 Soppa</div>
+        </div>
+        <div class="mock-section-title">Senaste recept</div>
+        <div class="mock-cards">
+          <div class="mock-card">
+            <div class="mock-card-icon">🥔</div>
+            <div class="mock-card-title">Potatis- & purjolökssoppa</div>
+            <div class="mock-card-sub">45 min · 4 port</div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-icon">🍌</div>
+            <div class="mock-card-title">Banankaka</div>
+            <div class="mock-card-sub">60 min</div>
+          </div>
+        </div>
+        <button class="mock-list-btn">🛒 Gör inköpslista</button>
+      </div>
+    </div>
+    <div class="mock-shopping">
+      <div class="mock-shopping-title">🛒 Inköpslista</div>
+      <div class="mock-shop-item checked"><span class="mock-checkbox">✓</span> Purjolök</div>
+      <div class="mock-shop-item"><span class="mock-checkbox"></span> Mjölig potatis</div>
+      <div class="mock-shop-item"><span class="mock-checkbox"></span> Grönsaksbuljong</div>
+      <div class="mock-shop-item checked"><span class="mock-checkbox">✓</span> Vispgrädde</div>
+    </div>
+    <div class="mock-cast">
+      <div class="mock-cast-label">📺 Laga-läge · castat till Nest Hub</div>
+      <div class="mock-cast-title">Purjolökssoppa</div>
+      <div class="mock-cast-cols">
+        <div class="mock-cast-ingr">
+          <div class="mock-cast-h">Ingredienser</div>
+          <div>400 g potatis</div>
+          <div>1 purjolök</div>
+          <div>8 dl buljong</div>
+        </div>
+        <div class="mock-cast-steps">
+          <div class="mock-cast-h">Gör så här</div>
+          <div>1. Fräs potatis & purjolök i smör.</div>
+          <div>2. Tillsätt buljong, sjud 30 min.</div>
+          <div>3. Rör i grädde, smaka av.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-label">
+      <h2>Nordisk Kök</h2>
+      <p>Skiffergrå header mot isvit botten med varm korallaccent. Lugnt och luftigt — skandinavisk köksdesign.</p>
+      <div class="swatches">
+        <div class="swatch" style="background:#2E4756" title="Skiffer"></div>
+        <div class="swatch" style="background:#E8896B" title="Korall"></div>
+        <div class="swatch" style="background:#F3F6F7" title="Is"></div>
+        <div class="swatch" style="background:#16242C" title="Djupblå"></div>
+        <div class="swatch" style="background:#ffffff" title="Vit"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MORMORS KÖK ===== -->
+  <div class="card mormor">
+    <div class="mock">
+      <div class="mock-header">
+        <div class="mock-logo">Mormors<span>Recept</span></div>
+        <input class="mock-search" type="text" placeholder="Sök recept…" readonly>
+      </div>
+      <div class="mock-body">
+        <div class="mock-chips">
+          <div class="mock-chip">🍽️ Middag</div>
+          <div class="mock-chip">🍰 Bakverk</div>
+          <div class="mock-chip">🍲 Soppa</div>
+        </div>
+        <div class="mock-section-title">Senaste recept</div>
+        <div class="mock-cards">
+          <div class="mock-card">
+            <div class="mock-card-icon">🍌</div>
+            <div class="mock-card-title">Banankaka</div>
+            <div class="mock-card-sub">60 min</div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-icon">🍲</div>
+            <div class="mock-card-title">Goda soppan från Elsass</div>
+            <div class="mock-card-sub">30 min · 4 port</div>
+          </div>
+        </div>
+        <button class="mock-list-btn">🛒 Gör inköpslista</button>
+      </div>
+    </div>
+    <div class="mock-shopping">
+      <div class="mock-shopping-title">🛒 Inköpslista</div>
+      <div class="mock-shop-item checked"><span class="mock-checkbox">✓</span> Bananer</div>
+      <div class="mock-shop-item"><span class="mock-checkbox"></span> Vaniljsocker</div>
+      <div class="mock-shop-item"><span class="mock-checkbox"></span> Bikarbonat</div>
+      <div class="mock-shop-item checked"><span class="mock-checkbox">✓</span> Grädde</div>
+    </div>
+    <div class="mock-cast">
+      <div class="mock-cast-label">📺 Laga-läge · castat till Nest Hub</div>
+      <div class="mock-cast-title">Banankaka</div>
+      <div class="mock-cast-cols">
+        <div class="mock-cast-ingr">
+          <div class="mock-cast-h">Ingredienser</div>
+          <div>3 bananer, välmogna</div>
+          <div>1 hg smör</div>
+          <div>2½ dl mjöl</div>
+        </div>
+        <div class="mock-cast-steps">
+          <div class="mock-cast-h">Gör så här</div>
+          <div>1. Vispa ägg & socker pösigt.</div>
+          <div>2. Mosa bananer, blanda i mjölet.</div>
+          <div>3. Grädda 50 min i 200°.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-label">
+      <h2>Mormors Kök</h2>
+      <p>Vintage kräm och tegelrött, med en handskriven känsla i rubrikerna — hyllar de äkta handskrivna recepten i samlingen.</p>
+      <div class="swatches">
+        <div class="swatch" style="background:#B5482A" title="Tegel"></div>
+        <div class="swatch" style="background:#D98A3D" title="Honung"></div>
+        <div class="swatch" style="background:#FDF9F0" title="Kräm"></div>
+        <div class="swatch" style="background:#3A2A1E" title="Mörk brun"></div>
+        <div class="swatch" style="background:#F5EAD2" title="Papper"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="text-align:center; margin-top:60px; font-size:0.8rem; color:#aaa; letter-spacing:0.06em;">
+  RECEPTAPPEN — DESIGNMOODBOARD 2026
+</p>
+
+</body>
+</html>

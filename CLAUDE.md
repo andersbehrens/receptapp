@@ -1,0 +1,96 @@
+# Recept – Projektbeskrivning för Claude
+
+## Vad är detta?
+
+En Progressive Web App (PWA) med familjens recept – en del avfotograferade ur en kokbok, en del handskrivna lappar. Appen låter dig bläddra/söka recept, bygga en inköpslista (avbockningsbar) och öppna ett "laga-läge" med stor text i två spalter, tänkt att castas till en Nest Hub Max eller liknande skärm i köket.
+
+## Teknisk stack
+
+- Ren HTML/CSS/JS – ingen ram, ingen bundler
+- Hash-baserad routing – `#`, `#recept/<id>`, `#inkopslista`, `#laga/<id>`
+- PWA med service worker (`sw.js`) – cache-first, installerbar
+- Markdown-rendering av receptfiler via `marked.lexer()` (client-side, ingen build-process)
+- Lokal dev-server: `python3 -m http.server 8420` i projektmappen
+
+## Filstruktur
+
+```
+receptApp/
+├── index.html            # Appskal: header, sök, #app-root, #cook-root
+├── sw.js                 # Service worker (cache: recept-v1, öka vid varje ändring)
+├── manifest.json          # PWA-manifest (Tomat-tema, theme_color #A8322D)
+├── css/style.css          # Allt CSS – Tomat-tema
+├── js/
+│   ├── app.js             # Router, markdown-parser, alla vyer, inköpslista, laga-läge
+│   └── marked.min.js      # Markdown-lexer (samma version som neuroApp)
+├── recept/*.md             # Ett recept per fil – källan till sanning
+├── icons/                 # icon.svg, icon-192.png, icon-512.png
+└── moodboard.html          # Designmoodboard (ej del av appen)
+```
+
+## Receptformat (recept/*.md)
+
+Varje fil har frontmatter + tre möjliga sektioner. Se valfri fil i `recept/` som mall.
+
+```markdown
+---
+title: "Receptnamn"
+category: "Middag"        # Middag | Soppa | Bakverk | Bröd & deg
+portioner: 4
+tid: "ca 30 min"
+taggar: [tagg1, tagg2]
+källa: "PXL_....jpg"
+---
+
+## Om receptet
+(valfritt) intro-text.
+
+## Ingredienser
+- ingrediens 1
+- ingrediens 2
+
+### Undergrupp (valfritt, t.ex. "Pajdeg", "Fyllning")
+- ingrediens 3
+
+## Gör så här
+1. steg ett
+2. steg två
+
+> (valfritt) tips/anteckning som blockquote
+```
+
+`js/app.js` parsar detta med `marked.lexer()` (se `parseFrontmatter` / `parseRecipeBody`). Rubrikerna `## Om receptet`, `## Ingredienser`, `## Gör så här` styr vilken sektion som tolkas – ändra inte deras ordalydelse utan att uppdatera parsern.
+
+## Lägga till ett nytt recept
+
+1. Skapa `recept/nytt-recept.md` enligt formatet ovan.
+2. Lägg till filnamnet i `RECIPE_FILES`-arrayen i `js/app.js`.
+3. Lägg till samma sökväg (`recept/nytt-recept.md`) i `ASSETS`-arrayen i `sw.js` och **öka `CACHE_NAME`**.
+4. Om det är en ny kategori: lägg till ikon i `CATEGORY_ICONS` i `js/app.js`.
+5. (Valfritt) lägg till en specifik receptikon i `RECIPE_ICONS`.
+
+## Inköpslista
+
+Lagras i `localStorage` under nyckeln `recept_shoppinglist_v1`. Ingredienser dedupliceras på normaliserad text (`normalize()`) – samma ingrediens från flera recept slås ihop och visar alla källor. `checked` betyder "behöver inte köpas" – används både för "har redan hemma" (bockas av innan handling) och "redan lagt i vagnen" (bockas av under handling).
+
+## Laga-läge (`#laga/<id>`)
+
+Helskärmsvy (`.cook-view`, `position:fixed; inset:0`) med två spalter (ingredienser/steg). `fitCookView()` i `app.js` mäter `view.scrollHeight` mot `view.clientHeight` och minskar `font-size` på `.cook-scale` i en loop tills allt innehåll får plats utan scroll (golv: 11px). Vid smal/stående skärm (`max-width:700px` eller `orientation:portrait`) stängs auto-fit av och vyn tillåter scroll istället (en spalt).
+
+**Casting:** Appen har ingen inbyggd Google Cast-integration (skulle kräva en registrerad/betald Cast-mottagare hos Google). Laga-läget är istället designat för att fungera bra med webbläsarens inbyggda "casta flik"-funktion (Chrome/Android) mot Chromecast-inbyggda skärmar som Nest Hub Max.
+
+## Publicering på GitHub Pages
+
+Samma mönster som neuroApp. Appen hostar på `https://andersbehrens.github.io/receptapp/`. Repot är publikt (`andersbehrens/receptapp`).
+
+```bash
+git add <filer>
+git commit -m "Beskrivande meddelande"
+git push
+```
+
+GitHub Pages deployas automatiskt inom ~1 minut. Testa i inkognitofönster.
+
+**Alla sökvägar måste vara relativa** (ingen ledande `/`) – annars fungerar de inte på GitHub Pages. Gäller `sw.js` (`ASSETS`), `js/app.js` (`fetch('recept/...')`), `index.html`/`manifest.json`.
+
+**Bumpa service worker-version:** varje gång filer läggs till eller ändras måste `CACHE_NAME` i `sw.js` ökas, annars använder installerade appar gammal cache.

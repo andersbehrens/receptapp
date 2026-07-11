@@ -1,0 +1,38 @@
+{
+  "name": "Recept – Mina recept",
+  "short_name": "Recept",
+  "description": "Sök recept, gör inköpslistor och laga mat med stor text i laga-läge",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FFF9F5",
+  "theme_color": "#A8322D",
+  "lang": "sv",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["food", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Inköpslista",
+      "url": "./#inkopslista",
+      "description": "Din inköpslista"
+    }
+  ]
+}
