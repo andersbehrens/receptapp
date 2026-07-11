@@ -3,6 +3,13 @@
    Router + markdown-parser + vyer + inköpslista + laga-läge
    ========================================================== */
 
+// GitHub Pages cachar sw.js i sitt CDN i 10 minuter (cache-control: max-age=600).
+// Utan cache-busting kan en telefon fortsätta använda en gammal service worker
+// i upp till 10 minuter efter en deploy, oavsett hur många gånger appen
+// stängs/öppnas. Bumpa den här strängen vid varje deploy så registreringen
+// alltid hämtar sw.js färskt (query-strängen kringgår CDN-cachen helt).
+const SW_REG_VERSION = 'v10';
+
 const RECIPE_FILES = [
   'basic-pizzadeg.md',
   'belugalasagne.md',
@@ -693,7 +700,7 @@ initCastSdk();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+    navigator.serviceWorker.register(`sw.js?v=${SW_REG_VERSION}`, { updateViaCache: 'none' }).then((reg) => {
       reg.update().catch(() => {});
       reg.addEventListener('updatefound', () => {
         const installing = reg.installing;

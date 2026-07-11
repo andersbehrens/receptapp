@@ -1,4 +1,4 @@
-const CACHE_NAME = 'recept-v9';
+const CACHE_NAME = 'recept-v10';
 const ASSETS = [
   './',
   'index.html',
@@ -21,8 +21,16 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+  // GitHub Pages CDN cachar alla filer i 10 min (max-age=600). Utan
+  // cache-busting här kan en färsk service worker ändå råka fylla sin nya
+  // cache med gamla filkopior om en deploy landar inom det fönstret.
+  // Query-strängen gör varje request unik och kringgår cachen helt; filen
+  // sparas ändå under sin rena URL så fetch-hanteraren nedan hittar den.
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting()),
+    caches.open(CACHE_NAME).then((cache) => Promise.all(
+      ASSETS.map((url) => fetch(`${url}${url.includes('?') ? '&' : '?'}swv=${CACHE_NAME}`, { cache: 'reload' })
+        .then((res) => cache.put(url, res))),
+    )).then(() => self.skipWaiting()),
   );
 });
 
