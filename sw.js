@@ -1,4 +1,4 @@
-const CACHE_NAME = 'recept-v2';
+const CACHE_NAME = 'recept-v3';
 const ASSETS = [
   './',
   'index.html',

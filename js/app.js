@@ -50,7 +50,7 @@ function normalize(text) {
 }
 
 let toastTimer;
-function showToast(msg) {
+function showToast(msg, duration = 2200) {
   let el = document.getElementById('toast');
   if (!el) {
     el = document.createElement('div');
@@ -61,25 +61,29 @@ function showToast(msg) {
   el.textContent = msg;
   requestAnimationFrame(() => el.classList.add('show'));
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+  toastTimer = setTimeout(() => el.classList.remove('show'), duration);
 }
 
-/* ---------- Casta till skärm (Presentation API) ---------- */
+/* ---------- Casta till skärm (Presentation API) ----------
+   Stödet för navigator.presentation.requestSession() är opålitligt på
+   Android Chrome (hittar ofta inga skärmar även om metoden finns), så
+   knappen visas alltid — istället för att gömmas via feature-detection —
+   och faller tillbaka på en tydlig instruktion om det inte fungerar. */
 
-const CAN_CAST = !!(navigator.presentation && navigator.presentation.requestSession);
+const MANUAL_CAST_HINT = 'Öppna webbläsarens meny (⋮) och välj "Casta…", eller använd castikonen i adressfältet.';
 
 async function startCast(id) {
-  if (!CAN_CAST) {
-    showToast('Casting stöds inte i den här webbläsaren – använd webbläsarens egen castknapp.');
+  const url = `${location.origin}${location.pathname}#laga/${encodeURIComponent(id)}`;
+  if (!(navigator.presentation && navigator.presentation.requestSession)) {
+    showToast(`Inbyggd casting stöds inte här. ${MANUAL_CAST_HINT}`, 5000);
     return;
   }
-  const url = `${location.origin}${location.pathname}#laga/${encodeURIComponent(id)}`;
   try {
     await navigator.presentation.requestSession(url);
     showToast('Castar laga-läget…');
   } catch (err) {
-    if (err && (err.name === 'NotFoundError' || err.name === 'AbortError')) return;
-    showToast('Kunde inte starta casting.');
+    if (err && err.name === 'AbortError') return;
+    showToast(`Hittade ingen castbar skärm. ${MANUAL_CAST_HINT}`, 5000);
   }
 }
 
@@ -353,7 +357,7 @@ function renderRecipeDetail(id) {
     <div class="action-row">
       <button class="btn btn-primary" data-action="add-to-list" data-id="${escapeHtml(r.id)}">🛒 Lägg till i inköpslistan</button>
       <a class="btn btn-gold" href="#laga/${encodeURIComponent(r.id)}">📺 Öppna laga-läge</a>
-      ${CAN_CAST ? `<button class="btn btn-outline" data-action="cast" data-id="${escapeHtml(r.id)}">📡 Casta till Nest Hub Max</button>` : ''}
+      <button class="btn btn-outline" data-action="cast" data-id="${escapeHtml(r.id)}">📡 Casta till Nest Hub Max</button>
     </div>
     <div class="recipe-block">
       <h2>Ingredienser</h2>
@@ -423,7 +427,7 @@ function cookViewHtml(r) {
   return `
     <div class="cook-view">
       <button class="cook-close" data-action="close-cook" data-id="${escapeHtml(r.id)}" aria-label="Stäng laga-läge">✕</button>
-      ${CAN_CAST ? `<button class="cook-cast-btn" data-action="cast" data-id="${escapeHtml(r.id)}" aria-label="Casta till Nest Hub Max">📡</button>` : ''}
+      <button class="cook-cast-btn" data-action="cast" data-id="${escapeHtml(r.id)}" aria-label="Casta till Nest Hub Max">📡</button>
       <div class="cook-scale">
         <div class="cook-label">📺 Laga-läge</div>
         <div class="cook-title">${escapeHtml(r.title)}</div>
@@ -535,6 +539,17 @@ init();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+      reg.update().catch(() => {});
+      reg.addEventListener('updatefound', () => {
+        const installing = reg.installing;
+        if (!installing) return;
+        installing.addEventListener('statechange', () => {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+            showToast('Ny version hämtad – ladda om appen för uppdateringen.', 5000);
+          }
+        });
+      });
+    }).catch(() => {});
   });
 }
