@@ -154,7 +154,7 @@ function showCastGuide() {
       <button class="cast-guide-close" data-action="close-cast-guide" aria-label="Stäng">✕</button>
       <div class="cast-guide-title">📡 Så castar du till Nest Hub Max</div>
       <ol class="cast-guide-steps">${steps}</ol>
-      <div class="cast-guide-tip">💡 Telefonen och Nest Hub Max måste vara på samma wifi-nätverk. En riktig castknapp som fungerar direkt i den installerade appen är på gång.</div>
+      <div class="cast-guide-tip">💡 Telefonen och Nest Hub Max måste vara på samma wifi-nätverk. Hittar castknappen "Inga tillgängliga enheter" i den installerade appen: kolla att Chrome/appen har fått behörighet till "Enheter i närheten"/"Lokalt nätverk" i telefonens appinställningar.</div>
     </div>
   `;
   requestAnimationFrame(() => el.classList.add('show'));
