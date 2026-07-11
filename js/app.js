@@ -76,18 +76,57 @@ const CAST_APP_ID = '41D888A8'; // registrerad på cast.google.com/publish, rece
 const CAST_NAMESPACE = 'urn:x-cast:com.receptrosso.cast';
 let castContext = null;
 let castReady = false;
+let castAckListenerSession = null;
+let castPendingHash = null;
+let castRetryTimer = null;
 
-function sendCastMessage(hash) {
+// Mottagaren (receiver.html) hinner inte alltid registrera sin
+// meddelandelyssnare innan sessionen anses "startad" — då försvinner det
+// första meddelandet i tomma intet och mottagaren fastnar på tomat-vänteskärmen.
+// Skickar därför om med jämna mellanrum tills mottagaren bekräftar (ack).
+function ensureCastAckListener(session) {
+  if (castAckListenerSession === session) return;
+  castAckListenerSession = session;
+  session.addMessageListener(CAST_NAMESPACE, (_ns, message) => {
+    let data = message;
+    if (typeof message === 'string') {
+      try { data = JSON.parse(message); } catch (e) { return; }
+    }
+    if (data && data.ack && data.ack === castPendingHash) {
+      castPendingHash = null;
+      clearTimeout(castRetryTimer);
+    }
+  });
+}
+
+function sendCastMessage(hash, attempt) {
   if (!castContext) return false;
   const session = castContext.getCurrentSession();
   if (!session) return false;
+  ensureCastAckListener(session);
+  castPendingHash = hash;
   session.sendMessage(CAST_NAMESPACE, { hash }).catch(() => {});
+  clearTimeout(castRetryTimer);
+  const nextAttempt = (attempt || 0) + 1;
+  if (nextAttempt < 8) {
+    castRetryTimer = setTimeout(() => {
+      if (castPendingHash === hash) sendCastMessage(hash, nextAttempt);
+    }, 600);
+  }
   return true;
 }
 
 function syncCastToCurrentRoute() {
   const hash = currentRoute();
   if (hash.startsWith('laga/')) sendCastMessage(hash);
+}
+
+function stopCasting() {
+  castPendingHash = null;
+  clearTimeout(castRetryTimer);
+  if (!castContext) return;
+  const session = castContext.getCurrentSession();
+  if (session) session.endSession(true).catch(() => {});
 }
 
 function initCastSdk() {
@@ -106,6 +145,10 @@ function initCastSdk() {
       if (e.sessionState === cast.framework.SessionState.SESSION_STARTED
         || e.sessionState === cast.framework.SessionState.SESSION_RESUMED) {
         syncCastToCurrentRoute();
+      } else if (e.sessionState === cast.framework.SessionState.SESSION_ENDED) {
+        castPendingHash = null;
+        castAckListenerSession = null;
+        clearTimeout(castRetryTimer);
       }
     });
   };
@@ -611,6 +654,7 @@ document.addEventListener('click', (e) => {
     input.value = '';
     input.focus();
   } else if (action === 'close-cook') {
+    stopCasting();
     location.hash = `#recept/${encodeURIComponent(btn.dataset.id)}`;
   } else if (action === 'cast') {
     startCast(btn.dataset.id);

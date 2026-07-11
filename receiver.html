@@ -32,7 +32,13 @@
       if (data.hash) {
         idle.hidden = true;
         frame.hidden = false;
+        // Sätter samma src igen är ofarligt (ingen omladdning om värdet
+        // redan är detsamma) — sändaren skickar om meddelandet ett par
+        // gånger tills den här bekräftelsen kommer fram.
         frame.src = 'index.html#' + data.hash;
+        if (event.senderId) {
+          context.sendCustomMessage(NAMESPACE, event.senderId, { ack: data.hash });
+        }
       }
     });
     context.start();
