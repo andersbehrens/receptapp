@@ -119,6 +119,10 @@ function closeCastGuide() {
   if (el) el.classList.remove('show');
 }
 
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
 function showCastGuide() {
   let el = document.getElementById('cast-guide');
   if (!el) {
@@ -128,17 +132,29 @@ function showCastGuide() {
     el.addEventListener('click', (e) => { if (e.target === el) closeCastGuide(); });
     document.body.appendChild(el);
   }
+
+  // Installerad app (standalone) har ingen webbläsarmeny/adressfält alls – då
+  // är "öppna menyn och tryck Casta" ett omöjligt steg. Ge en annan väg tills
+  // den riktiga castknappen (CAST_APP_ID) är aktiverad.
+  const steps = isStandalone()
+    ? `
+      <li>Vrid gärna telefonen till <b>liggande läge</b> – då får laga-läget plats utan att scrolla på skärmen.</li>
+      <li>Den installerade appen saknar webbläsarmeny, så öppna istället <b>samma adress i vanliga Chrome</b> (inte hem­skärms­ikonen).</li>
+      <li>Tryck på menyn (⋮) i Chrome → <b>"Casta…"</b> → välj <b>Nest Hub Max</b>.</li>
+    `
+    : `
+      <li>Vrid gärna telefonen till <b>liggande läge</b> – då får laga-läget plats utan att scrolla på skärmen.</li>
+      <li>Öppna webbläsarens meny (de tre punkterna ⋮ eller castikonen i adressfältet).</li>
+      <li>Tryck på <b>"Casta…"</b>.</li>
+      <li>Välj <b>Nest Hub Max</b> i listan.</li>
+    `;
+
   el.innerHTML = `
     <div class="cast-guide">
       <button class="cast-guide-close" data-action="close-cast-guide" aria-label="Stäng">✕</button>
       <div class="cast-guide-title">📡 Så castar du till Nest Hub Max</div>
-      <ol class="cast-guide-steps">
-        <li>Vrid gärna telefonen till <b>liggande läge</b> – då får laga-läget plats utan att scrolla på skärmen.</li>
-        <li>Öppna webbläsarens meny (de tre punkterna ⋮ eller castikonen i adressfältet).</li>
-        <li>Tryck på <b>"Casta…"</b>.</li>
-        <li>Välj <b>Nest Hub Max</b> i listan.</li>
-      </ol>
-      <div class="cast-guide-tip">💡 Telefonen och Nest Hub Max måste vara på samma wifi-nätverk.</div>
+      <ol class="cast-guide-steps">${steps}</ol>
+      <div class="cast-guide-tip">💡 Telefonen och Nest Hub Max måste vara på samma wifi-nätverk. En riktig castknapp som fungerar direkt i den installerade appen är på gång.</div>
     </div>
   `;
   requestAnimationFrame(() => el.classList.add('show'));
