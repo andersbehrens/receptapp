@@ -72,7 +72,7 @@ function showToast(msg, duration = 2200) {
    tillbaka på ett tyst försök med navigator.presentation och därefter en
    instruktionsruta som alltid fungerar, oavsett webbläsarstöd. */
 
-const CAST_APP_ID = null; // t.ex. '5CB4XXXX' — fyll i när receiver.html är registrerad
+const CAST_APP_ID = '41D888A8'; // registrerad på cast.google.com/publish, receiver.html
 const CAST_NAMESPACE = 'urn:x-cast:com.receptrosso.cast';
 let castContext = null;
 let castReady = false;
