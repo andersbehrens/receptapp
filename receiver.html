@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>Recept – Cast-mottagare</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #3D1210; overflow: hidden; }
+  iframe { border: none; width: 100%; height: 100%; display: block; }
+  #idle {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px; color: #FFEFE8; font-family: -apple-system, sans-serif;
+  }
+  #idle .emoji { font-size: 4rem; }
+</style>
+</head>
+<body>
+  <!-- Väntar på ett cast-meddelande med { hash: "laga/<recept-id>" } från sändaren.
+       Laddar då om samma app (index.html) i en iframe med det hashet, vilket
+       återanvänder hela laga-läget (auto-fit text, två spalter) rakt av. -->
+  <div id="idle"><div class="emoji">🍅</div><div>Väntar på recept …</div></div>
+  <iframe id="frame" src="about:blank" hidden></iframe>
+
+  <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+  <script>
+    var NAMESPACE = 'urn:x-cast:com.receptrosso.cast';
+    var frame = document.getElementById('frame');
+    var idle = document.getElementById('idle');
+
+    var context = cast.framework.CastReceiverContext.getInstance();
+    context.addCustomMessageListener(NAMESPACE, function (event) {
+      var data = event.data || {};
+      if (data.hash) {
+        idle.hidden = true;
+        frame.hidden = false;
+        frame.src = 'index.html#' + data.hash;
+      }
+    });
+    context.start();
+  </script>
+</body>
+</html>

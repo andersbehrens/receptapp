@@ -16,12 +16,13 @@ En Progressive Web App (PWA) med familjens recept – en del avfotograferade ur 
 
 ```
 receptApp/
-├── index.html            # Appskal: header, sök, #app-root, #cook-root
+├── index.html            # Appskal: header (inkl. google-cast-launcher), sök, #app-root, #cook-root
+├── receiver.html          # Custom Cast Receiver – körs på Nest Hub Max, se "Casting" nedan
 ├── sw.js                 # Service worker (cache: recept-v1, öka vid varje ändring)
 ├── manifest.json          # PWA-manifest (Tomat-tema, theme_color #A8322D)
 ├── css/style.css          # Allt CSS – Tomat-tema
 ├── js/
-│   ├── app.js             # Router, markdown-parser, alla vyer, inköpslista, laga-läge
+│   ├── app.js             # Router, markdown-parser, alla vyer, inköpslista, laga-läge, cast
 │   └── marked.min.js      # Markdown-lexer (samma version som neuroApp)
 ├── recept/*.md             # Ett recept per fil – källan till sanning
 ├── icons/                 # icon.svg, icon-192.png, icon-512.png
@@ -75,9 +76,18 @@ Lagras i `localStorage` under nyckeln `recept_shoppinglist_v1`. Ingredienser ded
 
 ## Laga-läge (`#laga/<id>`)
 
-Helskärmsvy (`.cook-view`, `position:fixed; inset:0`) med två spalter (ingredienser/steg). `fitCookView()` i `app.js` mäter `view.scrollHeight` mot `view.clientHeight` och minskar `font-size` på `.cook-scale` i en loop tills allt innehåll får plats utan scroll (golv: 11px). Vid smal/stående skärm (`max-width:700px` eller `orientation:portrait`) stängs auto-fit av och vyn tillåter scroll istället (en spalt).
+Helskärmsvy (`.cook-view`, `position:fixed; inset:0`) med två spalter (ingredienser/steg). `fitCookView()` i `app.js` mäter `view.scrollHeight` mot `view.clientHeight` och minskar `font-size` på `.cook-scale` i en loop tills allt innehåll får plats utan scroll (golv: 11px). I **stående läge** (`orientation:portrait` – oavsett bredd) stängs auto-fit av och vyn tillåter scroll istället (en spalt). Liggande läge (även på en smal telefon) får alltid tvåspalts-auto-fit.
 
-**Casting:** Appen har ingen inbyggd Google Cast-integration (skulle kräva en registrerad/betald Cast-mottagare hos Google). Laga-läget är istället designat för att fungera bra med webbläsarens inbyggda "casta flik"-funktion (Chrome/Android) mot Chromecast-inbyggda skärmar som Nest Hub Max.
+## Casting till Nest Hub Max
+
+Två lager, i den ordning `startCast()` i `app.js` provar dem:
+
+1. **Egen registrerad Google Cast Custom Receiver** (`receiver.html`) – riktig en-tryck-cast via `google-cast-launcher` i headern. Kräver `CAST_APP_ID` (konstant längst upp i "Casta till skärm"-sektionen i `app.js`) satt till ett App ID från [cast.google.com/publish](https://cast.google.com/publish). **Så länge `CAST_APP_ID` är `null` är hela detta lager inaktivt** och koden faller igenom till nästa lager.
+   - `receiver.html` laddar Cast Receiver-SDK:n, lyssnar på det anpassade namespace:t `urn:x-cast:com.receptrosso.cast`, och när den får ett meddelande `{hash: "laga/<id>"}` sätter den `iframe.src = 'index.html#' + hash` – dvs den återanvänder hela laga-läget (auto-fit, mörkt tema) rakt av. Ingen egen renderingskod i receiver.html.
+   - Sändarsidan (`initCastSdk`, `sendCastMessage`, `syncCastToCurrentRoute`) laddar `cast_sender.js`, initierar `CastContext` med `CAST_APP_ID`, och skickar aktuellt recepts hash så fort en session startar **eller** när man navigerar till `#laga/<id>` medan en session redan är aktiv (så att bläddring lokalt speglas live på skärmen).
+   - **Kvarstående steg (kräver användarens Google-konto, kan inte göras av Claude):** registrera på cast.google.com/publish (engångsavgift $5) med Custom Receiver-URL `https://andersbehrens.github.io/receptapp/receiver.html`, klistra in det tilldelade App ID:t i `CAST_APP_ID`, redeploya.
+2. **Fallback (`navigator.presentation.requestSession`)** – provas tyst om lager 1 inte är konfigurerat/tillgängligt. Opålitligt i praktiken (särskilt Android Chrome, se `showCastGuide`-kommentaren), men kostar inget att försöka.
+3. **Instruktionsguide (`showCastGuide()`)** – sista fallback, visas alltid om 1 och 2 misslyckas. En modal med steg-för-steg för webbläsarens egna inbyggda "Casta…"-funktion. Fungerar alltid, oavsett webbläsarstöd.
 
 ## Publicering på GitHub Pages
 

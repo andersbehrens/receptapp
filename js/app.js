@@ -65,11 +65,54 @@ function showToast(msg, duration = 2200) {
 }
 
 /* ---------- Casta till skärm ----------
-   navigator.presentation.requestSession() finns i teorin i Chrome, men är
-   i praktiken opålitligt (saknas eller hittar inga skärmar, särskilt på
-   Android). Vi försöker ändå tyst i bakgrunden — om det råkar fungera får
-   man den inbyggda enhetsväljaren direkt — men den huvudsakliga vägen är
-   en instruktionsruta som alltid fungerar, oavsett webbläsarstöd. */
+   Riktig Google Cast-integration mot en egen registrerad Custom Receiver
+   (receiver.html i det här repot). Kräver ett App ID från
+   https://cast.google.com/publish (engångsregistrering, $5) — sätt det
+   nedan i CAST_APP_ID. Tills dess (CAST_APP_ID === null) faller allt
+   tillbaka på ett tyst försök med navigator.presentation och därefter en
+   instruktionsruta som alltid fungerar, oavsett webbläsarstöd. */
+
+const CAST_APP_ID = null; // t.ex. '5CB4XXXX' — fyll i när receiver.html är registrerad
+const CAST_NAMESPACE = 'urn:x-cast:com.receptrosso.cast';
+let castContext = null;
+let castReady = false;
+
+function sendCastMessage(hash) {
+  if (!castContext) return false;
+  const session = castContext.getCurrentSession();
+  if (!session) return false;
+  session.sendMessage(CAST_NAMESPACE, { hash }).catch(() => {});
+  return true;
+}
+
+function syncCastToCurrentRoute() {
+  const hash = currentRoute();
+  if (hash.startsWith('laga/')) sendCastMessage(hash);
+}
+
+function initCastSdk() {
+  if (!CAST_APP_ID) return;
+  window['__onGCastApiAvailable'] = (isAvailable) => {
+    if (!isAvailable || !window.cast || !window.chrome) return;
+    castContext = cast.framework.CastContext.getInstance();
+    castContext.setOptions({
+      receiverApplicationId: CAST_APP_ID,
+      autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
+    });
+    castReady = true;
+    const launcher = document.getElementById('cast-launcher');
+    if (launcher) launcher.hidden = false;
+    castContext.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, (e) => {
+      if (e.sessionState === cast.framework.SessionState.SESSION_STARTED
+        || e.sessionState === cast.framework.SessionState.SESSION_RESUMED) {
+        syncCastToCurrentRoute();
+      }
+    });
+  };
+  const script = document.createElement('script');
+  script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
+  document.head.appendChild(script);
+}
 
 function closeCastGuide() {
   const el = document.getElementById('cast-guide');
@@ -102,7 +145,26 @@ function showCastGuide() {
 }
 
 async function startCast(id) {
-  const url = `${location.origin}${location.pathname}#laga/${encodeURIComponent(id)}`;
+  const hash = `laga/${encodeURIComponent(id)}`;
+
+  if (castReady && castContext) {
+    const existing = castContext.getCurrentSession();
+    if (existing) {
+      sendCastMessage(hash);
+      showToast('Skickar till Nest Hub Max…');
+      return;
+    }
+    try {
+      await castContext.requestSession();
+      sendCastMessage(hash);
+      showToast('Castar laga-läget…');
+      return;
+    } catch (err) {
+      if (err === 'cancel') return;
+    }
+  }
+
+  const url = `${location.origin}${location.pathname}#${hash}`;
   if (navigator.presentation && navigator.presentation.requestSession) {
     try {
       await navigator.presentation.requestSession(url);
@@ -300,6 +362,7 @@ function router() {
   const hash = currentRoute();
   if (hash.startsWith('laga/')) {
     renderCook(decodeURIComponent(hash.slice(5)));
+    syncCastToCurrentRoute();
     return;
   }
   cookRoot.innerHTML = '';
@@ -566,6 +629,7 @@ async function init() {
 }
 
 init();
+initCastSdk();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
