@@ -327,6 +327,92 @@ ul, ol { list-style: none; }
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* ---------- Cast-guide ---------- */
+
+.cast-guide-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(58, 18, 16, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.cast-guide-overlay.show { opacity: 1; pointer-events: auto; }
+
+.cast-guide {
+  position: relative;
+  background: var(--cream);
+  color: var(--ink);
+  border-radius: 18px;
+  padding: 26px 24px 22px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  transform: translateY(8px);
+  transition: transform 0.2s;
+}
+.cast-guide-overlay.show .cast-guide { transform: translateY(0); }
+
+.cast-guide-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--red-light);
+  color: var(--red);
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cast-guide-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+  padding-right: 30px;
+}
+
+.cast-guide-steps { counter-reset: cg-step; display: flex; flex-direction: column; gap: 12px; }
+.cast-guide-steps li {
+  counter-increment: cg-step;
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.cast-guide-steps li::before {
+  content: counter(cg-step);
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--red);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cast-guide-tip {
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  background: var(--red-light);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
 /* ---------- Inköpslista ---------- */
 
 .shop-bar {
@@ -533,8 +619,10 @@ ul, ol { list-style: none; }
   color: var(--cast-accent);
 }
 
-/* narrow / portrait fallback: allow scroll, single column */
-@media (max-width: 700px), (orientation: portrait) {
+/* stående läge: för smalt för två spalter, tillåt scroll istället.
+   Liggande (t.ex. telefon vriden för casting) får alltid auto-fit-läget,
+   oavsett bredd. */
+@media (orientation: portrait) {
   .cook-view { overflow-y: auto; padding: 24px 20px 40px; }
   .cook-cols { grid-template-columns: 1fr; gap: 24px; }
   .cook-scale { transform: none !important; }

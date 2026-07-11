@@ -64,27 +64,55 @@ function showToast(msg, duration = 2200) {
   toastTimer = setTimeout(() => el.classList.remove('show'), duration);
 }
 
-/* ---------- Casta till skärm (Presentation API) ----------
-   Stödet för navigator.presentation.requestSession() är opålitligt på
-   Android Chrome (hittar ofta inga skärmar även om metoden finns), så
-   knappen visas alltid — istället för att gömmas via feature-detection —
-   och faller tillbaka på en tydlig instruktion om det inte fungerar. */
+/* ---------- Casta till skärm ----------
+   navigator.presentation.requestSession() finns i teorin i Chrome, men är
+   i praktiken opålitligt (saknas eller hittar inga skärmar, särskilt på
+   Android). Vi försöker ändå tyst i bakgrunden — om det råkar fungera får
+   man den inbyggda enhetsväljaren direkt — men den huvudsakliga vägen är
+   en instruktionsruta som alltid fungerar, oavsett webbläsarstöd. */
 
-const MANUAL_CAST_HINT = 'Öppna webbläsarens meny (⋮) och välj "Casta…", eller använd castikonen i adressfältet.';
+function closeCastGuide() {
+  const el = document.getElementById('cast-guide');
+  if (el) el.classList.remove('show');
+}
+
+function showCastGuide() {
+  let el = document.getElementById('cast-guide');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'cast-guide';
+    el.className = 'cast-guide-overlay';
+    el.addEventListener('click', (e) => { if (e.target === el) closeCastGuide(); });
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `
+    <div class="cast-guide">
+      <button class="cast-guide-close" data-action="close-cast-guide" aria-label="Stäng">✕</button>
+      <div class="cast-guide-title">📡 Så castar du till Nest Hub Max</div>
+      <ol class="cast-guide-steps">
+        <li>Vrid gärna telefonen till <b>liggande läge</b> – då får laga-läget plats utan att scrolla på skärmen.</li>
+        <li>Öppna webbläsarens meny (de tre punkterna ⋮ eller castikonen i adressfältet).</li>
+        <li>Tryck på <b>"Casta…"</b>.</li>
+        <li>Välj <b>Nest Hub Max</b> i listan.</li>
+      </ol>
+      <div class="cast-guide-tip">💡 Telefonen och Nest Hub Max måste vara på samma wifi-nätverk.</div>
+    </div>
+  `;
+  requestAnimationFrame(() => el.classList.add('show'));
+}
 
 async function startCast(id) {
   const url = `${location.origin}${location.pathname}#laga/${encodeURIComponent(id)}`;
-  if (!(navigator.presentation && navigator.presentation.requestSession)) {
-    showToast(`Inbyggd casting stöds inte här. ${MANUAL_CAST_HINT}`, 5000);
-    return;
+  if (navigator.presentation && navigator.presentation.requestSession) {
+    try {
+      await navigator.presentation.requestSession(url);
+      showToast('Castar laga-läget…');
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
   }
-  try {
-    await navigator.presentation.requestSession(url);
-    showToast('Castar laga-läget…');
-  } catch (err) {
-    if (err && err.name === 'AbortError') return;
-    showToast(`Hittade ingen castbar skärm. ${MANUAL_CAST_HINT}`, 5000);
-  }
+  showCastGuide();
 }
 
 /* ---------- Markdown → recept-parser ---------- */
@@ -452,8 +480,8 @@ function fitCookView() {
   const view = cookRoot.querySelector('.cook-view');
   const scaleEl = cookRoot.querySelector('.cook-scale');
   if (!view || !scaleEl) return;
-  const isNarrow = window.matchMedia('(max-width: 700px), (orientation: portrait)').matches;
-  if (isNarrow) { scaleEl.style.fontSize = ''; return; }
+  const isPortrait = window.matchMedia('(orientation: portrait)').matches;
+  if (isPortrait) { scaleEl.style.fontSize = ''; return; }
 
   let fontSize = Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.05);
   fontSize = Math.max(18, Math.min(fontSize, 42));
@@ -507,6 +535,8 @@ document.addEventListener('click', (e) => {
     location.hash = `#recept/${encodeURIComponent(btn.dataset.id)}`;
   } else if (action === 'cast') {
     startCast(btn.dataset.id);
+  } else if (action === 'close-cast-guide') {
+    closeCastGuide();
   }
 });
 
