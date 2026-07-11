@@ -430,6 +430,23 @@ ul, ol { list-style: none; }
   z-index: 5;
 }
 
+.cook-cast-btn {
+  position: absolute;
+  top: 2vh;
+  right: calc(2vw + 64px);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(242, 166, 90, 0.18);
+  color: var(--cast-accent);
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
 .cook-scale {
   flex: 1;
   display: flex;
@@ -452,7 +469,7 @@ ul, ol { list-style: none; }
   font-weight: 800;
   line-height: 1.15;
   margin-bottom: 0.3em;
-  padding-right: 60px;
+  padding-right: 130px;
 }
 
 .cook-cols {
