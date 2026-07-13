@@ -78,6 +78,8 @@ Lagras i `localStorage` under nyckeln `recept_shoppinglist_v1`. Ingredienser ded
 
 **Varför ingen inbyggd e-handelsintegration (t.ex. ICA):** utforskat 2026-07-11. ICA:s handla-sida skickar `Content-Security-Policy: frame-ancestors 'self'`, så den går inte att bädda in i en iframe i appen. De har inget publikt API en statisk GitHub Pages-sida kan anropa (CORS), och deras varukorg är knuten till session-cookies på deras egen domän – appen kan alltså tekniskt inte lägga varor i en riktig ICA-varukorg själv. Rätt lösning istället: en assisterad "handla-runda" där Claude (med Chrome-tillägget anslutet) går igenom ICA:s riktiga sida live, matchar produkter mot listan, och lägger dem i användarens riktiga varukorg – inte kod som ligger i appen. Willys undersöktes också (se `willys-agent`-projektet på GitHub) men kräver personnummer + lösenord via ett oofficiellt reverse-engineerat API – inget Claude ska hantera.
 
+**Slash-command `/handla`** (`.claude/commands/handla.md`): kör hela ICA-handla-rundan ovan. Användaren behöver bara skriva `/handla` och klistra in listan från "Dela lista" – ingen anledning att förklara proceduren på nytt varje gång.
+
 ## Laga-läge (`#laga/<id>`)
 
 Helskärmsvy (`.cook-view`, `position:fixed; inset:0`) med två spalter (ingredienser/steg). `fitCookView()` i `app.js` mäter `view.scrollHeight` mot `view.clientHeight` och minskar `font-size` på `.cook-scale` i en loop tills allt innehåll får plats utan scroll (golv: 11px). I **stående läge** (`orientation:portrait` – oavsett bredd) stängs auto-fit av och vyn tillåter scroll istället (en spalt). Liggande läge (även på en smal telefon) får alltid tvåspalts-auto-fit.
