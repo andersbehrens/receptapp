@@ -8,7 +8,7 @@
 // i upp till 10 minuter efter en deploy, oavsett hur många gånger appen
 // stängs/öppnas. Bumpa den här strängen vid varje deploy så registreringen
 // alltid hämtar sw.js färskt (query-strängen kringgår CDN-cachen helt).
-const SW_REG_VERSION = 'v12';
+const SW_REG_VERSION = 'v13';
 
 const RECIPE_FILES = [
   'basic-pizzadeg.md',
@@ -433,6 +433,22 @@ function addCustomItem(text) {
   if (currentRoute() === 'inkopslista') renderShoppingList();
 }
 
+async function shareList() {
+  const items = getList().filter((x) => !x.checked);
+  if (!items.length) { showToast('Inget kvar att handla — allt är avbockat.'); return; }
+  const text = `Inköpslista:\n${items.map((x) => `- ${x.text}`).join('\n')}`;
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Inköpslista', text }); return; }
+    catch (err) { if (err && err.name === 'AbortError') return; }
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Listan kopierad — klistra in där du vill skicka den.', 3500);
+  } catch (err) {
+    showToast('Kunde inte dela eller kopiera listan.');
+  }
+}
+
 /* ---------- Router ---------- */
 
 function currentRoute() {
@@ -569,6 +585,7 @@ function renderShoppingList() {
     <h1 style="font-size:1.4rem;margin-bottom:16px">🛒 Inköpslista</h1>
     ${list.length ? `
       <div class="shop-bar">
+        <button class="btn btn-gold" data-action="share-list">📤 Dela lista</button>
         <button class="btn btn-outline" data-action="clear-checked">Rensa avbockade</button>
         <button class="btn btn-outline" data-action="clear-all">Rensa allt</button>
       </div>
@@ -670,6 +687,8 @@ document.addEventListener('click', (e) => {
     clearChecked();
   } else if (action === 'clear-all') {
     clearAll();
+  } else if (action === 'share-list') {
+    shareList();
   } else if (action === 'add-custom-item') {
     const input = document.getElementById('shop-add-input');
     addCustomItem(input.value);

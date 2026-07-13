@@ -74,6 +74,10 @@ källa: "PXL_....jpg"
 
 Lagras i `localStorage` under nyckeln `recept_shoppinglist_v1`. Ingredienser dedupliceras på normaliserad text (`normalize()`) – samma ingrediens från flera recept slås ihop och visar alla källor. `checked` betyder "behöver inte köpas" – används både för "har redan hemma" (bockas av innan handling) och "redan lagt i vagnen" (bockas av under handling).
 
+**"Dela lista"-knappen** (`shareList()`) tar de obockade varorna, bygger en textlista, och använder `navigator.share()` (native delningsruta på mobil) med fallback till `navigator.clipboard.writeText()` (skrivbord). Tänkt användning: dela listan till sig själv för att sedan klistra in den i ett Claude-samtal på en annan enhet.
+
+**Varför ingen inbyggd e-handelsintegration (t.ex. ICA):** utforskat 2026-07-11. ICA:s handla-sida skickar `Content-Security-Policy: frame-ancestors 'self'`, så den går inte att bädda in i en iframe i appen. De har inget publikt API en statisk GitHub Pages-sida kan anropa (CORS), och deras varukorg är knuten till session-cookies på deras egen domän – appen kan alltså tekniskt inte lägga varor i en riktig ICA-varukorg själv. Rätt lösning istället: en assisterad "handla-runda" där Claude (med Chrome-tillägget anslutet) går igenom ICA:s riktiga sida live, matchar produkter mot listan, och lägger dem i användarens riktiga varukorg – inte kod som ligger i appen. Willys undersöktes också (se `willys-agent`-projektet på GitHub) men kräver personnummer + lösenord via ett oofficiellt reverse-engineerat API – inget Claude ska hantera.
+
 ## Laga-läge (`#laga/<id>`)
 
 Helskärmsvy (`.cook-view`, `position:fixed; inset:0`) med två spalter (ingredienser/steg). `fitCookView()` i `app.js` mäter `view.scrollHeight` mot `view.clientHeight` och minskar `font-size` på `.cook-scale` i en loop tills allt innehåll får plats utan scroll (golv: 11px). I **stående läge** (`orientation:portrait` – oavsett bredd) stängs auto-fit av och vyn tillåter scroll istället (en spalt). Liggande läge (även på en smal telefon) får alltid tvåspalts-auto-fit.
