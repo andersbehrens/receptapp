@@ -6,10 +6,14 @@ Butik (om inget annat sägs): https://handlaprivatkund.ica.se/stores/1004028
 
 1. Öppna butikens sida i Chrome (Claude in Chrome-tillägget krävs — be användaren koppla in det om det inte redan är anslutet). Om en cookie-modal dyker upp: klicka "Avvisa alla" (integritetsvänligast) — bara en gång i början av sessionen.
 2. Sök fram **alla** varor i listan efter varandra (`navigate` till `.../search?q=<term>`), och samla namn/pris/vikt via `javascript_tool` (se "Tokeneffektivitet" nedan) — inte en i taget med väntan på svar mellan varje.
-3. Bygg en interaktiv plockista (Artifact, se `artifact-design`-skill) där användaren klickar fram alternativ + mängd per vara, istället för att lista allt som text i chatten. Om en artifact redan finns för samma recept: uppdatera bara `ITEMS`-arrayen i den, återanvänd CSS/logik/URL rakt av.
-4. Användaren skickar tillbaka sina val (via textrutan i artifacten, se nedan).
-5. Lägg de valda produkterna i den riktiga varukorgen på ICA:s sida.
-6. Sammanfatta på slutet: vilka varor som lades i varukorgen, och vilka (om några) användaren hoppade över/behöver lösa själv.
+3. Bygg en interaktiv plockista: kopiera `.claude/templates/ica-plockista-template.html`, byt bara ut titel/`ITEMS`/`STORAGE_KEY` (se kommentaren överst i filen), publicera som Artifact. Bygg INTE en ny sida från grunden — mallen har redan alla fixar (UTF-8, textruta-fallback, localStorage) från tidigare körningar.
+4. Användaren skickar tillbaka sina val (klistrar in innehållet i textrutan från artifacten).
+5. Lägg de valda produkterna i den riktiga varukorgen på ICA:s sida — **i rätt mängd** (se "Kvantitet" nedan, detta missades en hel körning).
+6. Sammanfatta på slutet: vilka varor som lades i varukorgen (med mängd), och vilka (om några) användaren hoppade över/behöver lösa själv.
+
+## Kvantitet
+
+Varje rad i användarens svar har formatet `- Varunamn (N enhet): Produktval`. **N är hur många av den valda produkten som ska läggas i varukorgen — inte receptets råvarumängd.** Om N > 1: klicka "Lägg till" N gånger för den produkten (med samma ~1.5–2s paus mellan varje klick som mot navigering, se nedan), inte bara en gång. Detta missades i en tidigare körning — "2 gula lökar" (N=2 efter användarens justering) fick bara 1 st i varukorgen eftersom endast ett klick gjordes. Räkna med i din förväntade totalsumma vid slutverifieringen (pris × N per vara).
 
 ## Tokeneffektivitet (lärt av tidigare körningar — gör så här från början)
 
@@ -25,12 +29,9 @@ Butik (om inget annat sägs): https://handlaprivatkund.ica.se/stores/1004028
 - **Verifiera en gång i slutet, inte efter varje vara.** Läs varukorgens totalsumma/antal (liten `zoom` på badge-ikonen, eller `get_page_text`) efter ALLA tillägg, jämför mot förväntad summa. Full skärmdump av hela varukorgen bara om summan inte stämmer.
 - **Batcha aggressivt.** Ett `browser_batch`-anrop med navigate → wait → javascript_tool → wait → navigate → ... för flera varor i rad, istället för separata anrop per steg.
 
-## Artifact-specifika lärdomar (gäller om du bygger/uppdaterar plockistan)
+## Artifact-mallen (`.claude/templates/ica-plockista-template.html`)
 
-- **`<meta charset="UTF-8">` allra först i filen** — annars kan å/ä/ö renderas som mojibake beroende på hur den publicerade sidan serveras.
-- **Lita inte på `sendPrompt()` eller `navigator.clipboard.writeText()`** i den publicerade (inloggade) artifact-kontexten — båda kan tystna utan fel. Ha alltid en synlig, förvald `<textarea readonly>` som fallback som användaren kan markera och Cmd+C:a manuellt.
-- **Spara val i `localStorage`** (wrappat i try/catch) så att en omdeploy eller omladdning aldrig raderar det användaren redan klickat i.
-- Testa lokalt (`python3 -m http.server` i en scratch-mapp) innan du publicerar om — det är gratis och fångar buggar som annars kräver en hel publish-cykel att upptäcka.
+Redan löst i mallen, så det här är bara bakgrund — behöver inte göras om: UTF-8-charset (annars mojibake på å/ä/ö), `sendPrompt()`/`navigator.clipboard.writeText()` är opålitliga i den publicerade artifact-kontexten så mallen går direkt på en synlig förvald textruta istället, och val sparas i `localStorage` så en omdeploy/omladdning inte raderar användarens klick. Om du ändå redigerar mallen: testa lokalt (`python3 -m http.server` i en scratch-mapp) innan du publicerar om.
 
 ## Viktiga gränser
 

@@ -78,7 +78,14 @@ Lagras i `localStorage` under nyckeln `recept_shoppinglist_v1`. Ingredienser ded
 
 **Varför ingen inbyggd e-handelsintegration (t.ex. ICA):** utforskat 2026-07-11. ICA:s handla-sida skickar `Content-Security-Policy: frame-ancestors 'self'`, så den går inte att bädda in i en iframe i appen. De har inget publikt API en statisk GitHub Pages-sida kan anropa (CORS), och deras varukorg är knuten till session-cookies på deras egen domän – appen kan alltså tekniskt inte lägga varor i en riktig ICA-varukorg själv. Rätt lösning istället: en assisterad "handla-runda" där Claude (med Chrome-tillägget anslutet) går igenom ICA:s riktiga sida live, matchar produkter mot listan, och lägger dem i användarens riktiga varukorg – inte kod som ligger i appen. Willys undersöktes också (se `willys-agent`-projektet på GitHub) men kräver personnummer + lösenord via ett oofficiellt reverse-engineerat API – inget Claude ska hantera.
 
-**Slash-command `/handla`** (`.claude/commands/handla.md`): kör hela ICA-handla-rundan ovan. Användaren behöver bara skriva `/handla` och klistra in listan från "Dela lista" – ingen anledning att förklara proceduren på nytt varje gång.
+**Slash-commands:**
+
+| Kommando | Beskrivning |
+|----------|-------------|
+| `/handla` | Kör hela ICA-handla-rundan: söker upp varorna, bygger en interaktiv plockista (Artifact från `.claude/templates/ica-plockista-template.html`), lägger valda produkter i rätt mängd i användarens riktiga varukorg. Rör aldrig inloggning/betalning. |
+| `/veckans-recept` | Läser av ICA:s aktuella erbjudanden och matchar mot alla recept i `recept/*.md`, rekommenderar vad som är värt att laga denna vecka baserat på vad som är på extrapris. |
+
+Användaren behöver bara skriva kommandot (t.ex. klistra in listan från "Dela lista" efter `/handla`) – ingen anledning att förklara proceduren på nytt varje gång, den ligger i kommandofilerna.
 
 ## Laga-läge (`#laga/<id>`)
 
