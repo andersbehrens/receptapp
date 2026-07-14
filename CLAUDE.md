@@ -74,7 +74,11 @@ källa: "PXL_....jpg"
 
 Lagras i `localStorage` under nyckeln `recept_shoppinglist_v1`. Ingredienser dedupliceras på normaliserad text (`normalize()`) – samma ingrediens från flera recept slås ihop och visar alla källor. `checked` betyder "behöver inte köpas" – används både för "har redan hemma" (bockas av innan handling) och "redan lagt i vagnen" (bockas av under handling).
 
-**"Dela lista"-knappen** (`shareList()`) tar de obockade varorna, bygger en textlista, och använder `navigator.share()` (native delningsruta på mobil) med fallback till `navigator.clipboard.writeText()` (skrivbord). Tänkt användning: dela listan till sig själv för att sedan klistra in den i ett Claude-samtal på en annan enhet.
+**"Dela lista"-knappen** (`shareList()`) tar de obockade varorna, bygger en textlista, och använder `navigator.share()` (native delningsruta på mobil) med fallback till `navigator.clipboard.writeText()` (skrivbord). Kvar som manuell fallback om Worker-synken (nedan) skulle vara nere.
+
+**Synk via Cloudflare Worker (`syncListToWorker()`, tillagd 2026-07-14):** varje `saveList()` schemalägger (debounce 1.5s) en `POST` av de obockade varorna till en liten Cloudflare Worker (`SYNC_WORKER_URL` i `js/app.js`, `https://receptapp-list.andersbehrens.workers.dev`), som lagrar dem i Workers KV (namespace `receptapp-list-kv`, bindning `SHOPPING_LIST`). `/handla` läser samma URL med `GET` direkt istället för att användaren delar listan till sig själv och klistrar in den — telefon och dator synkas automatiskt.
+
+Ett GitHub Personal Access Token-baserat alternativ testades först (skriva direkt till en JSON-fil i repot) men övergavs 2026-07-14: GitHubs push protection blockerade committen eftersom token permanent hade hamnat i git-historiken (till skillnad från att bara synas i sidkällan). Cloudflare-lösningen är strikt bättre: Workern håller inga hemligheter alls (öppet API, ingen auth) eftersom en inköpslista inte är känslig data — det finns därför inget att läcka, varken i klientkod eller git-historik. Om Workern någonsin behöver skrivskydd: lägg till ett delat hemligt värde som miljövariabel i Workern (inte i git), men det är inte gjort då blast radius redan är minimal.
 
 **Varför ingen inbyggd e-handelsintegration (t.ex. ICA):** utforskat 2026-07-11. ICA:s handla-sida skickar `Content-Security-Policy: frame-ancestors 'self'`, så den går inte att bädda in i en iframe i appen. De har inget publikt API en statisk GitHub Pages-sida kan anropa (CORS), och deras varukorg är knuten till session-cookies på deras egen domän – appen kan alltså tekniskt inte lägga varor i en riktig ICA-varukorg själv. Rätt lösning istället: en assisterad "handla-runda" där Claude (med Chrome-tillägget anslutet) går igenom ICA:s riktiga sida live, matchar produkter mot listan, och lägger dem i användarens riktiga varukorg – inte kod som ligger i appen. Willys undersöktes också (se `willys-agent`-projektet på GitHub) men kräver personnummer + lösenord via ett oofficiellt reverse-engineerat API – inget Claude ska hantera.
 
@@ -82,10 +86,10 @@ Lagras i `localStorage` under nyckeln `recept_shoppinglist_v1`. Ingredienser ded
 
 | Kommando | Beskrivning |
 |----------|-------------|
-| `/handla` | Kör hela ICA-handla-rundan: söker upp varorna, bygger en interaktiv plockista (Artifact från `.claude/templates/ica-plockista-template.html`), lägger valda produkter i rätt mängd i användarens riktiga varukorg. Rör aldrig inloggning/betalning. |
+| `/handla` | Kör hela ICA-handla-rundan: hämtar inköpslistan automatiskt via Worker-synken (se ovan, inget klistra in behövs längre), söker upp varorna, bygger en interaktiv plockista (Artifact från `.claude/templates/ica-plockista-template.html`), lägger valda produkter i rätt mängd i användarens riktiga varukorg. Rör aldrig inloggning/betalning. |
 | `/veckans-recept` | Läser av ICA:s aktuella erbjudanden och matchar mot alla recept i `recept/*.md`, rekommenderar vad som är värt att laga denna vecka baserat på vad som är på extrapris. |
 
-Användaren behöver bara skriva kommandot (t.ex. klistra in listan från "Dela lista" efter `/handla`) – ingen anledning att förklara proceduren på nytt varje gång, den ligger i kommandofilerna.
+Användaren behöver bara skriva kommandot – ingen anledning att förklara proceduren på nytt varje gång, den ligger i kommandofilerna.
 
 ## Laga-läge (`#laga/<id>`)
 

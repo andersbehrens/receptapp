@@ -1,6 +1,16 @@
-Kör en assisterad ICA-handla-runda. Användaren har klistrat in sin inköpslista efter det här kommandot (från "Dela lista"-knappen i receptappen).
+Kör en assisterad ICA-handla-runda.
 
 Butik (om inget annat sägs): https://handlaprivatkund.ica.se/stores/1004028
+
+## Hämta inköpslistan
+
+Om användaren klistrat in en lista direkt efter kommandot: använd den. Annars hämta den automatiskt (ingen anledning att fråga användaren om detta):
+
+```
+GET https://receptapp-list.andersbehrens.workers.dev
+```
+
+Svaret är `{ "updated": "<ISO-tidsstämpel eller null>", "items": ["vara 1", "vara 2", ...] }`. Appen synkar dit automatiskt (en liten Cloudflare Worker + KV-lagring, ingen auth) varje gång listan ändras (se `CLAUDE.md` → "Inköpslista" → "Synk via Cloudflare Worker"), så det här är alltid senaste listan från telefonen — inget delnings-/klistra in-steg behövs längre. Om `items` är tom eller anropet misslyckas: be användaren klistra in listan manuellt som fallback (gamla flödet via "Dela lista"-knappen).
 
 ## Gör så här
 

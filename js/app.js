@@ -8,7 +8,7 @@
 // i upp till 10 minuter efter en deploy, oavsett hur många gånger appen
 // stängs/öppnas. Bumpa den här strängen vid varje deploy så registreringen
 // alltid hämtar sw.js färskt (query-strängen kringgår CDN-cachen helt).
-const SW_REG_VERSION = 'v13';
+const SW_REG_VERSION = 'v14';
 
 const RECIPE_FILES = [
   'basic-pizzadeg.md',
@@ -37,6 +37,14 @@ const RECIPE_ICONS = {
 };
 
 const SHOPLIST_KEY = 'recept_shoppinglist_v1';
+
+// Synkar inköpslistan till en liten Cloudflare Worker (+ KV-lagring) så
+// /handla kan läsa den direkt utan att användaren behöver dela listan till
+// sig själv och klistra in den. Ingen hemlighet inblandad — Workern är
+// öppen (ingen auth), eftersom en inköpslista inte är känslig data och detta
+// helt undviker att bädda in någon nyckel i publik klientkod (se CLAUDE.md
+// → "Inköpslista" → "Synk via Cloudflare Worker").
+const SYNC_WORKER_URL = 'https://receptapp-list.andersbehrens.workers.dev';
 
 let RECIPES = [];
 const state = { query: '', category: 'Alla' };
@@ -369,6 +377,29 @@ function getList() {
 function saveList(list) {
   localStorage.setItem(SHOPLIST_KEY, JSON.stringify(list));
   updateCartBadge();
+  scheduleWorkerSync();
+}
+
+let workerSyncTimer;
+function scheduleWorkerSync() {
+  clearTimeout(workerSyncTimer);
+  workerSyncTimer = setTimeout(syncListToWorker, 1500);
+}
+
+// Skriver de obockade varorna till Workern (och därmed KV) vid varje
+// ändring, så /handla alltid kan hämta senaste listan direkt. Tyst fel —
+// funkar appen ändå utan nätverk/synk är det bara bekvämligheten som uteblir.
+async function syncListToWorker() {
+  try {
+    const items = getList().filter((x) => !x.checked).map((x) => x.text);
+    await fetch(SYNC_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updated: new Date().toISOString(), items }),
+    });
+  } catch (err) {
+    console.error('Synk av inköpslistan misslyckades', err);
+  }
 }
 
 function updateCartBadge() {
