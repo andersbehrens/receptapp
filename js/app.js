@@ -8,7 +8,7 @@
 // i upp till 10 minuter efter en deploy, oavsett hur många gånger appen
 // stängs/öppnas. Bumpa den här strängen vid varje deploy så registreringen
 // alltid hämtar sw.js färskt (query-strängen kringgår CDN-cachen helt).
-const SW_REG_VERSION = 'v14';
+const SW_REG_VERSION = 'v15';
 
 const RECIPE_FILES = [
   'basic-pizzadeg.md',
@@ -182,6 +182,51 @@ function initCastSdk() {
 function closeCastGuide() {
   const el = document.getElementById('cast-guide');
   if (el) el.classList.remove('show');
+}
+
+/* ---------- Info-guide ---------- */
+
+function closeInfoGuide() {
+  const el = document.getElementById('info-guide');
+  if (el) el.classList.remove('show');
+}
+
+function showInfoGuide() {
+  let el = document.getElementById('info-guide');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'info-guide';
+    el.className = 'info-guide-overlay';
+    el.addEventListener('click', (e) => { if (e.target === el) closeInfoGuide(); });
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `
+    <div class="info-guide">
+      <button class="info-guide-close" data-action="close-info-guide" aria-label="Stäng">✕</button>
+      <div class="info-guide-title">ℹ️ Så funkar appen</div>
+      <div class="info-section">
+        <h4>🛒 Inköpslistan</h4>
+        <p>Öppna ett recept och tryck "Lägg till i inköpslistan". Bocka av det du redan har hemma. Listan sparas automatiskt på din telefon och synkas i bakgrunden till en liten molntjänst varje gång den ändras — inget du behöver göra själv.</p>
+      </div>
+      <div class="info-section">
+        <h4>🧑‍🍳 Handla (på en dator)</h4>
+        <p>Öppna Claude Code i receptApp-mappen på en dator och skriv <code>/handla</code>. Din senaste inköpslista hämtas automatiskt (samma lista som på telefonen), och Claude hjälper till att lägga varorna i din riktiga ICA-varukorg — du loggar in och betalar själv efteråt.</p>
+      </div>
+      <div class="info-section">
+        <h4>📅 Veckans recept</h4>
+        <p>Skriv <code>/veckans-recept</code> i samma Claude Code-samtal för ett förslag på vad som är värt att laga denna vecka, baserat på ICA:s aktuella erbjudanden.</p>
+      </div>
+      <div class="info-section">
+        <h4>📡 Casta till skärm</h4>
+        <p>Öppna ett recepts laga-läge och tryck på castknappen (📡) för att visa stegen på en Nest Hub Max eller liknande skärm i köket.</p>
+      </div>
+      <div class="info-section">
+        <h4>👥 Dela med familjen</h4>
+        <p>Vem som helst kan installera appen på sin egen telefon via samma adress. Recept, laga-läge och casting fungerar oberoende på varje telefon. Inköpslistan delas dock via samma synk — den senaste ändringen (oavsett vems telefon) är den som <code>/handla</code> hämtar.</p>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(() => el.classList.add('show'));
 }
 
 function isStandalone() {
@@ -732,6 +777,10 @@ document.addEventListener('click', (e) => {
     startCast(btn.dataset.id);
   } else if (action === 'close-cast-guide') {
     closeCastGuide();
+  } else if (action === 'show-info') {
+    showInfoGuide();
+  } else if (action === 'close-info-guide') {
+    closeInfoGuide();
   }
 });
 
