@@ -2,10 +2,16 @@
   Mall för /handla-artifacten. Kopiera denna fil, ändra sedan bara:
   - <h1> (titel, rad ~90)
   - <p class="note"> om produktbilder laddar den här gången
-  - ITEMS-arrayen (namn/qty/unit/alts per vara i den nya inköpslistan)
+  - ITEMS-arrayen (namn/qty/unit/alts per vara i den nya inköpslistan) — lägg
+    in ursprungsland/märke i "m"-fältet (t.ex. "0,5 kg · Sverige") när det
+    går att läsa av, annars klipps ingen viktig info bort (korrigerat
+    2026-07-14, se CSS nedan: alts är nu en vertikal lista med
+    white-space: normal, inte ihopklämda chips med ellipsis-trunkering).
   - STORAGE_KEY (unikt per recept/handla-runda, annars krockar sparat state)
   Allt annat (CSS, statushantering, textruta-fallback, localStorage-persistens)
   är redan testat och ska inte behöva ändras. Se .claude/commands/handla.md.
+  Token-tips: ändra en kopia av den här filen med Edit (riktade diffar), inte
+  Write med hela filen omskriven — samma princip som annan kod i det här repot.
 -->
 <meta charset="UTF-8">
 <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Interaktiv plockista för ICA-inköp: välj alternativ och mängd för varje vara i receptets inköpslista.</h2>
@@ -75,15 +81,15 @@
   .qty-btn:hover { background: var(--bg); }
   .qty-val { min-width: 26px; text-align: center; font-size: 14px; font-variant-numeric: tabular-nums; }
   .qty-unit { font-size: 12.5px; color: var(--ink-soft); }
-  .alts { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 8px; }
-  .alt { display: flex; align-items: center; gap: 9px; padding: 6px 12px 6px 6px; border-radius: 9px; border: 0.5px solid var(--border-strong); background: var(--bg); color: var(--ink); cursor: pointer; text-align: left; font-family: inherit; max-width: 240px; }
+  .alts { display: flex; flex-direction: column; gap: 7px; margin-bottom: 8px; }
+  .alt { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 9px; border: 0.5px solid var(--border-strong); background: var(--bg); color: var(--ink); cursor: pointer; text-align: left; font-family: inherit; width: 100%; }
   .alt:hover { border-color: var(--green); }
   .alt.sel { border: 1.5px solid var(--green); background: var(--green-tint); }
-  .alt-thumb { width: 34px; height: 34px; border-radius: 7px; flex-shrink: 0; object-fit: cover; background: var(--border); }
-  .alt-emoji { width: 34px; height: 34px; border-radius: 7px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 17px; background: var(--border); }
-  .alt-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .alt .n { font-size: 12.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .alt .p { font-size: 11px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .alt-thumb { width: 38px; height: 38px; border-radius: 7px; flex-shrink: 0; object-fit: cover; background: var(--border); }
+  .alt-emoji { width: 38px; height: 38px; border-radius: 7px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 19px; background: var(--border); }
+  .alt-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .alt .n { font-size: 13px; font-weight: 500; white-space: normal; line-height: 1.3; }
+  .alt .p { font-size: 11.5px; color: var(--ink-soft); white-space: normal; line-height: 1.3; }
   .alt .jmf { font-size: 10.5px; color: var(--ink-soft); opacity: 0.8; font-variant-numeric: tabular-nums; }
   .alt.sel .p, .alt.sel .jmf { color: var(--green-ink); }
   .foot-row { display: flex; align-items: center; gap: 10px; }
