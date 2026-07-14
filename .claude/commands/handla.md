@@ -17,13 +17,18 @@ Varje rad i användarens svar har formatet `- Varunamn (N enhet): Produktval`. *
 
 ## Tokeneffektivitet (lärt av tidigare körningar — gör så här från början)
 
-- **Läs produktresultat med JS, inte skärmdumpar.** Extrahera text/pris/vikt via `javascript_tool`:
+- **Läs produktresultat med JS, inte skärmdumpar.** Extrahera namn/bild/jämförelsepris via `javascript_tool`:
   ```js
   Array.from(document.querySelectorAll('.product-card-container')).slice(0,5).map(c=>{
-    const img=c.querySelector('img'); return {image:img?img.src:null, text:c.textContent.replace(/\s+/g,' ').trim()};
+    const img = c.querySelector('img');
+    const name = c.querySelector('h3')?.textContent.trim() || '';
+    const text = c.textContent.replace(/\s+/g,' ').trim();
+    const jmf = text.match(/jmf\s*([\d.,]+\s*kr\/(?:kg|l|st))/i);
+    return { image: img ? img.src : null, name, jmf: jmf ? jmf[1] : null, text };
   })
   ```
-  En skärmdump kostar mångdubbelt fler tokens än samma information som text. Ta bara en skärmdump när du faktiskt behöver se layout/bekräfta något visuellt (t.ex. slutgiltig varukorgskontroll).
+  `text` ger dig fortfarande pris/vikt som förut (parsa ur hela strängen). `jmf` är jämförelsepriset (kr/kg, kr/l eller kr/st) om det finns — visa det i plockistan, det hjälper användaren jämföra förpackningsstorlekar. En skärmdump kostar mångdubbelt fler tokens än samma information som text. Ta bara en skärmdump när du faktiskt behöver se layout/bekräfta något visuellt (t.ex. slutgiltig varukorgskontroll).
+- **Produktbilder är opålitliga på ICA:s sida** — `img` blir ofta `null` (fastnar i ett laddningsskelett på deras håll, inte något att felsöka i vår kod). Skicka med `img` när den finns, annars utelämna fältet — mallen visar automatiskt en emoji-ikon (item-nivåns `emoji`-fält) istället, och byter tillbaka till ikonen om en bild-URL går sönder (`onerror`). Vänta inte extra länge på bilder eller försök tvinga fram dem — det är inte värt tiden.
 - **Lägg i varukorg via JS-klick, inte skärmkoordinater.** Hitta rätt kort via `textContent.includes(produktnamn)`, klicka dess "Lägg till"-knapp direkt (`btn.click()`). Skärmkoordinater är opålitliga (skalskillnad mellan skärmdump och verklig viewport).
 - **Vänta ~1.5–2s efter varje "Lägg till"-klick innan du navigerar vidare.** Navigerar du direkt kan lägg-till-anropet hinna avbrytas och varan försvinner tyst ur korgen (hände en hel körning — upptäcktes bara för att totalsumman inte stämde).
 - **Verifiera en gång i slutet, inte efter varje vara.** Läs varukorgens totalsumma/antal (liten `zoom` på badge-ikonen, eller `get_page_text`) efter ALLA tillägg, jämför mot förväntad summa. Full skärmdump av hela varukorgen bara om summan inte stämmer.
