@@ -87,7 +87,7 @@ Ett GitHub Personal Access Token-baserat alternativ testades först (skriva dire
 | Kommando | Beskrivning |
 |----------|-------------|
 | `/handla` | Kör en assisterad handla-runda hos ICA eller Willys (Karlskrona): hämtar inköpslistan automatiskt via Worker-synken (se ovan, inget klistra in behövs längre), söker upp varorna, bygger en interaktiv plockista (Artifact från `.claude/templates/ica-plockista-template.html`), lägger valda produkter i rätt mängd i den riktiga varukorgen. ICA körs via Chrome-tillägget (`claude-in-chrome`, kräver att det är anslutet); Willys körs via Browser-pane-verktyget istället eftersom `claude-in-chrome` är blockerat mot `willys.se` (upptäckt 2026-07-15, går inte att konfigurera bort). Willys-sessionen är bara giltig inom samma konversation — användaren måste logga in och slutföra köpet själv innan konversationen avslutas. Rör aldrig inloggning/betalning, och rör aldrig "töm varukorg" utan uttrycklig tillåtelse. |
-| `/veckans-recept` | Läser av ICA:s aktuella erbjudanden och matchar mot alla recept i `recept/*.md`, rekommenderar vad som är värt att laga denna vecka baserat på vad som är på extrapris. |
+| `/veckans-recept` | Läser av **både ICA:s och Willys aktuella erbjudanden** och matchar mot alla recept i `recept/*.md`, rekommenderar vad som är värt att laga denna vecka och vilken av de två butikerna som är bäst att handla i, baserat på vad som är på extrapris i respektive butik. |
 
 Användaren behöver bara skriva kommandot – ingen anledning att förklara proceduren på nytt varje gång, den ligger i kommandofilerna.
 
