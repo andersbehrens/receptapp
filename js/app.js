@@ -8,7 +8,7 @@
 // i upp till 10 minuter efter en deploy, oavsett hur många gånger appen
 // stängs/öppnas. Bumpa den här strängen vid varje deploy så registreringen
 // alltid hämtar sw.js färskt (query-strängen kringgår CDN-cachen helt).
-const SW_REG_VERSION = 'v15';
+const SW_REG_VERSION = 'v16';
 
 const RECIPE_FILES = [
   'basic-pizzadeg.md',
@@ -210,7 +210,7 @@ function showInfoGuide() {
       </div>
       <div class="info-section">
         <h4>🧑‍🍳 Handla (på en dator)</h4>
-        <p>Öppna Claude Code i receptApp-mappen på en dator och skriv <code>/handla</code>. Din senaste inköpslista hämtas automatiskt (samma lista som på telefonen), och Claude hjälper till att lägga varorna i din riktiga ICA-varukorg — du loggar in och betalar själv efteråt.</p>
+        <p>Öppna Claude Code i receptApp-mappen på en dator och skriv <code>/handla</code>. Din senaste inköpslista hämtas automatiskt (samma lista som på telefonen), och Claude hjälper till att lägga varorna i din riktiga varukorg — du loggar in och betalar själv efteråt. Standard är ICA — skriv t.ex. <code>/handla willys</code> för att handla hos Willys istället.</p>
       </div>
       <div class="info-section">
         <h4>📅 Veckans recept</h4>
