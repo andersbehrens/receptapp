@@ -8,7 +8,7 @@
 // i upp till 10 minuter efter en deploy, oavsett hur många gånger appen
 // stängs/öppnas. Bumpa den här strängen vid varje deploy så registreringen
 // alltid hämtar sw.js färskt (query-strängen kringgår CDN-cachen helt).
-const SW_REG_VERSION = 'v16';
+const SW_REG_VERSION = 'v18';
 
 const RECIPE_FILES = [
   'basic-pizzadeg.md',
@@ -815,18 +815,25 @@ init();
 initCastSdk();
 
 if ('serviceWorker' in navigator) {
+  // Om en GAMMAL service worker redan styr sidan vid laddning: när en ny
+  // version tar över (skipWaiting + clients.claim i sw.js) laddar vi om en
+  // gång så att den nyss aktiverade koden faktiskt körs. Utan detta hann
+  // sidan redan rendera med den gamla cachade app.js:en – vilket bl.a. gjorde
+  // att ett nytillagt recept castade till startsidan istället för receptet på
+  // Nest Hub-mottagaren (mottagaren körde kvar på förra versionens RECIPE_FILES).
+  // Vi beväpnar bara lyssnaren när en controller redan finns, så att ett
+  // förstagångsbesök (ingen tidigare SW) inte laddar om i onödan.
+  if (navigator.serviceWorker.controller) {
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloading) return;
+      reloading = true;
+      location.reload();
+    });
+  }
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`sw.js?v=${SW_REG_VERSION}`, { updateViaCache: 'none' }).then((reg) => {
       reg.update().catch(() => {});
-      reg.addEventListener('updatefound', () => {
-        const installing = reg.installing;
-        if (!installing) return;
-        installing.addEventListener('statechange', () => {
-          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-            showToast('Ny version hämtad – ladda om appen för uppdateringen.', 5000);
-          }
-        });
-      });
     }).catch(() => {});
   });
 }
