@@ -20,6 +20,7 @@ const RECIPE_FILES = [
   'banankaka.md',
   'glasstarta.md',
   'potatis-purjoloekssoppa.md',
+  'knackig-applepaj.md',
 ];
 
 const CATEGORY_ORDER = ['Middag', 'Soppa', 'Bakverk', 'Bröd & deg'];
@@ -34,6 +35,7 @@ const RECIPE_ICONS = {
   'potatis-purjoloekssoppa': '🥔',
   'banankaka': '🍌',
   'glasstarta': '🍨',
+  'knackig-applepaj': '🥧',
 };
 
 const SHOPLIST_KEY = 'recept_shoppinglist_v1';
