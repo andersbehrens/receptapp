@@ -1,4 +1,4 @@
-const CACHE_NAME = 'recept-v18';
+const CACHE_NAME = 'recept-v19';
 const ASSETS = [
   './',
   'index.html',
@@ -19,6 +19,7 @@ const ASSETS = [
   'recept/glasstarta.md',
   'recept/potatis-purjoloekssoppa.md',
   'recept/knackig-applepaj.md',
+  'recept/klassisk-lasagne.md',
 ];
 
 self.addEventListener('install', (event) => {
