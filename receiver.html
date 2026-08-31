@@ -46,7 +46,17 @@
         }
       }
     });
-    context.start();
-  </script>
+    // Vår mottagare spelar aldrig upp media – den visar bara ett recept. CAF:s
+    // standardbeteende är att stänga en "idle" mottagare (ingen media/aktivitet)
+    // efter en stund, vilket gjorde att casten dog mitt under matlagningen: när
+    // telefonen gick i viloläge kopplade sändaren ifrån (standard efter ~10 s),
+    // och med 0 sändare + ingen media stängde mottagaren sig själv. Nest Hub föll
+    // då tillbaka till sin startskärm och man fick casta om. disableIdleTimeout
+    // håller mottagaren igång tills castningen aktivt avslutas – Google
+    // rekommenderar uttryckligen flaggan för icke-media-appar.
+    var options = new cast.framework.CastReceiverOptions();
+    options.disableIdleTimeout = true;
+    context.start(options);
+</script>
 </body>
 </html>
