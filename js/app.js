@@ -8,7 +8,7 @@
 // i upp till 10 minuter efter en deploy, oavsett hur många gånger appen
 // stängs/öppnas. Bumpa den här strängen vid varje deploy så registreringen
 // alltid hämtar sw.js färskt (query-strängen kringgår CDN-cachen helt).
-const SW_REG_VERSION = 'v19';
+const SW_REG_VERSION = 'v20';
 
 const RECIPE_FILES = [
   'basic-pizzadeg.md',
@@ -22,6 +22,7 @@ const RECIPE_FILES = [
   'potatis-purjoloekssoppa.md',
   'knackig-applepaj.md',
   'klassisk-lasagne.md',
+  'gucki.md',
 ];
 
 const CATEGORY_ORDER = ['Middag', 'Soppa', 'Bakverk', 'Bröd & deg'];
@@ -38,6 +39,7 @@ const RECIPE_ICONS = {
   'glasstarta': '🍨',
   'knackig-applepaj': '🥧',
   'klassisk-lasagne': '🍝',
+  'gucki': '🍎',
 };
 
 const SHOPLIST_KEY = 'recept_shoppinglist_v1';
